@@ -3,6 +3,10 @@ import os
 from django.http import JsonResponse
 from django.http import HttpResponse
 from django.shortcuts import render
+from django.db import models
+import json
+
+from app.models import User
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 
@@ -35,3 +39,20 @@ def homepage(request):
 def postTest(request):
     html = "<h1>OK</h1>"
     return HttpResponse(html)
+
+
+def register_user(request):
+    if request.method == 'POST':
+        str = request.body.decode('UTF-8')
+        dictionary = json.loads(str)
+
+        p = User()
+
+        p.name = dictionary['name']
+        p.surname = dictionary['surname']
+        p.email = dictionary['email']
+        p.password = dictionary['password']
+
+        p.save()
+
+    return HttpResponse()
