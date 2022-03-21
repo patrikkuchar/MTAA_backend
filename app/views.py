@@ -1,6 +1,7 @@
 import psycopg2 as psycopg2
 import os
 from django.http import JsonResponse
+from django.http import HttpResponse
 from django.shortcuts import render
 
 SECRET_KEY = os.getenv('SECRET_KEY')
@@ -29,6 +30,8 @@ def homepage(request):
             'password': row[4]
         })
 
-
-
     return JsonResponse(object)
+
+def postTest(request):
+    html = "<h1>OK</h1>"
+    return HttpResponse(html)
