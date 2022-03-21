@@ -1,7 +1,9 @@
 import psycopg2 as psycopg2
 import os
+import json
 from django.http import JsonResponse
 from django.http import HttpResponse
+from django.contrib.auth import authenticate
 from django.shortcuts import render
 from django.db import models
 import json
@@ -38,6 +40,8 @@ def homepage(request):
 
 def postTest(request):
     html = "<h1>OK</h1>"
+    str = request.body.decode('utf-8')#.replace("\n","").replace("\r","").replace(" ","")
+    d = json.loads(str)
     return HttpResponse(html)
 
 
@@ -48,6 +52,7 @@ def register_user(request):
 
         p = User()
 
+       # p.id = dictionary['id']
         p.name = dictionary['name']
         p.surname = dictionary['surname']
         p.email = dictionary['email']
@@ -55,4 +60,9 @@ def register_user(request):
 
         p.save()
 
+    return HttpResponse()
+
+def login_user(request, email):
+   # user = authenticate(email=email, password=password)
+    u = User.objects.get(email=email)
     return HttpResponse()

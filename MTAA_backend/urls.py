@@ -25,6 +25,7 @@ urlpatterns = [
 
     # USERS ( REGISTER USER )
     path('user/', views.register_user, name='register_user'),
+    path('user/<str:email>/', views.login_user, name='login_user')
 ]
 
 
