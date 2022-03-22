@@ -1,4 +1,7 @@
 
+import code
+from pyexpat import model
+from types import CodeType
 from itsdangerous import Serializer
 import psycopg2 as psycopg2
 import os
@@ -17,7 +20,7 @@ from app.models import Booking, Liked, User, Property
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 
-
+logged_user = ""
 
 # Create your views here.
 def homepage(request):
@@ -72,11 +75,27 @@ def register_user(request):
     return HttpResponse()
 
 # Logging in user < ++ Working on it>
-def login_user(request, email):
-   # user = authenticate(email=email, password=password)
-    u = User.objects.get(email=email)
-    return HttpResponse()
+def login_user(request):
+    if request.method == 'POST':
+        str = request.body.decode('UTF-8')
+        dictionary = json.loads(str)
+        try:
+            result = User.objects.get(email=dictionary["email"], password=dictionary["password"])
+            
+            logged_user = result["id"]
+            return HttpResponse(result)
+        except:
+            # zle prihlasovacie údaje
+            print("DOJEBAL SI SA")
+            return HttpResponse()
+
+       
     
+    
+# FILTER
+
+
+
 
 
 
@@ -108,7 +127,7 @@ def property_add(request):
         new_property.region = dictionary['region']
         new_property.subregion = dictionary['subregion']
         new_property.last_updated = dictionary['last_updated']
-        new_property.owner_id = dictionary['owner_id']
+        new_property.owner_id = dictionary['owner_id']  # logged user
         new_property.address = dictionary['info']
         
 
@@ -127,7 +146,6 @@ def property_delete(request,property_id):
 def property_edit(request,property_id):
     p = Property.objects.get(id = property_id)
     
-
 
 
 
@@ -181,11 +199,27 @@ def booking_delete(request,booking_id):
 # Return all user's liked properties [GET]
 def liked_info(request,user_id):
     All_liked = []
-    all = Liked.objects.filter(user_id = user_id)
+    all = Liked.objects.select_related('property').filter(user_id = user_id)
     
     for one in all:
-        model_liked_one = model_to_dict(one)
-        All_liked.append(model_liked_one)
+
+        model_liked_one = model_to_dict(one.property)
+        
+        json_property = {
+            "id" : model_liked_one['id'],
+            "rooms" : model_liked_one['rooms'],
+            "area" : model_liked_one['area'],
+            "price" : model_liked_one['price'],
+            "region" : model_liked_one['region'],
+            "subregion" : model_liked_one['subregion'],
+            "last_updated" : model_liked_one['last_updated'],
+            "owner_id" : model_liked_one['owner_id'],
+            "address" : model_liked_one['address'],
+            "info" : model_liked_one['info'],
+
+        }
+        
+        All_liked.append(json_property)
 
     
     json_liked = json.dumps(All_liked, indent=4, default=str)

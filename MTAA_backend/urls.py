@@ -28,10 +28,18 @@ urlpatterns = [
     # USERS
 
     # [POST] ( REGISTER USER )
-    path('user/', views.register_user, name='register_user'),
+    path('user/register/', views.register_user, name='register_user'),
 
-    # [GET] ( LOGIN USER )
-    path('user/<str:email>/', views.login_user, name='login_user'),
+    # [POST] ( LOGIN USER )
+    path('user/login/', views.login_user, name='login_user'),
+
+
+
+    # [POST] ( LOGIN USER )
+    path('filter/bratislav/subregion/100-200/20-64/{}', views.login_user, name='login_user'),
+
+
+
 
 
 

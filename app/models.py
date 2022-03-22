@@ -1,9 +1,7 @@
-from MySQLdb import Timestamp
 from django.db import models
 
 # Create your models here.
 class User(models.Model):
-  #id = models.BigAutoField(primary_key=True)
   name = models.CharField(max_length=100)
   surname = models.CharField(max_length=100)
   email= models.CharField(max_length=100)
@@ -44,8 +42,8 @@ class Image(models.Model):
 
 
 class Liked(models.Model):
-  property_id = models.BigIntegerField()
-  user_id = models.BigIntegerField()
+  property = models.ForeignKey(Property, related_name="properties", blank=True, null=True, on_delete=models.SET_NULL)
+  user = models.ForeignKey(User, related_name="users", blank=True, null=True,on_delete=models.SET_NULL)
 
   class Meta:
     db_table = "liked"
