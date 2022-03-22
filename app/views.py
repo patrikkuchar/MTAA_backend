@@ -1,3 +1,5 @@
+
+from itsdangerous import Serializer
 import psycopg2 as psycopg2
 import os
 import json
@@ -8,14 +10,14 @@ from django.shortcuts import render
 from django.db import models
 import json
 
-from app.models import User
+from django.forms.models import model_to_dict
+
+
+from app.models import User, Property
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 
-conn = psycopg2.connect(database=os.getenv('DATABASE'), user=os.getenv('USER'),
-                        password=os.getenv('PASS'), host=os.getenv('HOST'),
-                        port=os.getenv('PORT'))
-cur = conn.cursor()
+
 
 # Create your views here.
 def homepage(request):
@@ -62,7 +64,44 @@ def register_user(request):
 
     return HttpResponse()
 
+
+ 
 def login_user(request, email):
    # user = authenticate(email=email, password=password)
     u = User.objects.get(email=email)
+    return HttpResponse()
+    
+
+# Returning json object from Property
+def property_info(request, property_id):
+   
+    prop = Property.objects.get(id = property_id)
+    prop = model_to_dict(prop)
+   
+    json_property = json.dumps(prop, indent=4, default=str)
+    
+    return HttpResponse(json_property)
+
+
+
+# Adding new property to database (+ TO DO = images adding )
+def property_add(request):
+    if request.method == 'POST':
+        str = request.body.decode('UTF-8')
+        dictionary =json.loads(str)
+
+        new_property = Property()
+
+        new_property.rooms = dictionary['rooms']
+        new_property.area = dictionary['area']
+        new_property.price = dictionary['price']
+        new_property.region = dictionary['region']
+        new_property.subregion = dictionary['subregion']
+        new_property.last_updated = dictionary['last_updated']
+        new_property.owner_id = dictionary['owner_id']
+        new_property.address = dictionary['info']
+        
+
+        new_property.save()
+
     return HttpResponse()
