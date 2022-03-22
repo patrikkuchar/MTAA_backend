@@ -23,18 +23,63 @@ urlpatterns = [
     path('test/', views.postTest, name='postTest'),
 
 
-    # USERS ( REGISTER USER )
+
+
+    # USERS
+
+    # [POST] ( REGISTER USER )
     path('user/', views.register_user, name='register_user'),
 
-    # USER ( LOGIN USER )
+    # [GET] ( LOGIN USER )
     path('user/<str:email>/', views.login_user, name='login_user'),
 
 
-    # PROPERTY (Show info about property page)
+
+    # PROPERTY 
+
+    # [GET] (Show info about property page)
     path('property/<int:property_id>/', views.property_info, name='property_info'),
 
-    # PROPERTY (ADD new property to DATABASE)
+    # [POST] (ADD new property to DATABASE)
     path('property/', views.property_add, name='property_add'),
+
+    # [DELETE] (Delete property from DATABASE)
+    path('property/<int:property_id>/delete/', views.property_delete, name='property_delete'),
+
+
+
+
+    # BOOKINGS
+
+    # [GET] Show all user's booking
+    path('booking/<int:user_id>/', views.booking_info, name='booking_info'),
+
+    # [POST] Create new booking 
+    path('booking/', views.booking_create, name='booking_create'),
+
+    # [DELETE] Delete existing booking
+    path('booking/<int:booking_id>/delete', views.booking_delete, name='booking_delete'),
+
+
+
+
+    # LIKED
+
+    # [GET] Show all user's liked properties
+    path('liked/<int:user_id>/', views.liked_info, name='liked_info'),
+    
+    # [POST] Add property to user's liked list
+    path('liked/', views.liked_add, name='liked_add'),
+    
+    # [DELETE] Remove property from user's liked list
+    path('liked/<int:liked_id>/', views.liked_remove, name='liked_remove'),
+
+
+
+
+
+
+
 
 ]
 
