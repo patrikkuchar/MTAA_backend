@@ -25,7 +25,17 @@ urlpatterns = [
 
     # USERS ( REGISTER USER )
     path('user/', views.register_user, name='register_user'),
-    path('user/<str:email>/', views.login_user, name='login_user')
+
+    # USER ( LOGIN USER )
+    path('user/<str:email>/', views.login_user, name='login_user'),
+
+
+    # PROPERTY (Show info about property page)
+    path('property/<int:property_id>/', views.property_info, name='property_info'),
+
+    # PROPERTY (ADD new property to DATABASE)
+    path('property/', views.property_add, name='property_add'),
+
 ]
 
 
