@@ -8,10 +8,15 @@ import os
 import json
 from django.http import JsonResponse
 from django.http import HttpResponse
-from django.contrib.auth import authenticate
+from rest_framework import status
+from rest_framework.response import Response
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.db import models
 import json
+import jwt
+import datetime
 
 from django.forms.models import model_to_dict
 
@@ -20,34 +25,19 @@ from app.models import Booking, Liked, User, Property
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 
-logged_user = ""
-
-# Create your views here.
-def homepage(request):
-    query = "SELECT * FROM users;"
-
-    cur.execute(query)
-
-    result = cur.fetchall()
-
-    object = {'object': []}
-
-    for row in result:
-        object["object"].append({
-            'id': row[0],
-            'name': row[1],
-            'surname': row[2],
-            'email': row[3],
-            'password': row[4]
-        })
-
-    return JsonResponse(object)
-
-def postTest(request):
-    html = "<h1>OK</h1>"
-    str = request.body.decode('utf-8')#.replace("\n","").replace("\r","").replace(" ","")
-    d = json.loads(str)
-    return HttpResponse(html)
+def checkToken(request):
+    try:
+        token = request.headers["Authorization"]
+        token = token.split(' ')[1] #možno nebude potrebné splitovať, keď to bude volať frontend
+    except:
+        return None
+    try:
+        decoded_token = jwt.decode(token, 'secret', algorithms='HS256')
+        return decoded_token['id']
+    except jwt.ExpiredSignatureError:
+        return None
+    except:
+        return None
 
 
 
@@ -62,38 +52,49 @@ def register_user(request):
         str = request.body.decode('UTF-8')
         dictionary = json.loads(str)
 
+        #validacia či nie je email už používaný
+        try:
+            User.objects.get(email=dictionary['email'])
+            return JsonResponse({'message': 'Email already taken'}, status=400)
+        except:
+            pass
+
         p = User()
 
-       # p.id = dictionary['id']
         p.name = dictionary['name']
         p.surname = dictionary['surname']
         p.email = dictionary['email']
         p.password = dictionary['password']
 
         p.save()
+        return JsonResponse({'message': 'Account created'}, status=201)
 
-    return HttpResponse()
+    return JsonResponse({'message': 'Wrong method'}, status=400)
 
 # Logging in user < ++ Working on it>
 def login_user(request):
     if request.method == 'POST':
-        str = request.body.decode('UTF-8')
+        str = request.body.decode('utf-8')
         dictionary = json.loads(str)
         try:
-            result = User.objects.get(email=dictionary["email"], password=dictionary["password"])
-            
-            logged_user = result["id"]
-            return HttpResponse(result)
-        except:
-            # zle prihlasovacie údaje
-            print("DOJEBAL SI SA")
-            return HttpResponse()
+            user = User.objects.get(email=dictionary["email"], password=dictionary["password"])
+            payload = {
+                'id': user.id,
+                'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24),
+                'iat': datetime.datetime.utcnow()
+            }
 
-       
+            token = jwt.encode(payload, 'secret', algorithm='HS256').decode('utf-8')
+
+            return JsonResponse({'jwt': token}, status=200)
+        except:
+            return JsonResponse({'message': 'Incorrect email or password'}, status=400)
+
+    return JsonResponse({'message': 'Wrong method'}, status=400)
+
     
     
 # FILTER
-
 
 
 
@@ -104,20 +105,28 @@ def login_user(request):
 #--------------------------------
 
 # Returning json object from Property [GET]
+# property/<int:property_id>/
 def property_info(request, property_id):
-   
-    prop = Property.objects.get(id = property_id)
-    prop = model_to_dict(prop)
-   
-    json_property = json.dumps(prop, indent=4, default=str)
-    
-    return HttpResponse(json_property)
+    if request.method == 'GET':
+        user_id = checkToken(request)
+        if user_id is None:
+            return JsonResponse({'message': 'Unauthorized access'}, status=401)
+
+        prop = Property.objects.get(id=property_id)
+        prop = model_to_dict(prop)
+
+        return JsonResponse(prop, status=200)
+    return JsonResponse({'message': 'Wrong method'}, status=400)
 
 # Adding new property to database (+ TO DO = images adding ) [POST]
 def property_add(request):
     if request.method == 'POST':
+        user_id = checkToken(request)
+        if user_id is None:
+            return JsonResponse({'message': 'Unauthorized access'}, status=401)
+
         str = request.body.decode('UTF-8')
-        dictionary =json.loads(str)
+        dictionary = json.loads(str)
 
         new_property = Property()
 
@@ -127,24 +136,36 @@ def property_add(request):
         new_property.region = dictionary['region']
         new_property.subregion = dictionary['subregion']
         new_property.last_updated = dictionary['last_updated']
-        new_property.owner_id = dictionary['owner_id']  # logged user
+        new_property.owner_id = user_id
         new_property.address = dictionary['info']
-        
 
         new_property.save()
 
-    return HttpResponse()
+        return JsonResponse({'message': 'Property successfully added'}, status=201)
+    return JsonResponse({'message': 'Wrong method'}, status=400)
 
 # Deleting property from database [DELETE]
 def property_delete(request,property_id):
-    p = Property.objects.get(id = property_id)
-    p.delete()
+    if request.method == 'DELETE':
+        user_id = checkToken(request)
+        if user_id is None:
+            return JsonResponse({'message': 'Unauthorized access'}, status=401)
 
-    return HttpResponse()
+        # property in database
+        try:
+            p = Property.objects.get(id=property_id)
+            if p['owner_id'] != user_id:
+                return JsonResponse({'message': 'You do not own this property'}, status=403)
+
+            p.delete()
+            return JsonResponse({'message': 'Property successfully removed'}, status=204)
+        except:
+            return JsonResponse({'message': 'Not Found'}, status=404)
+    return JsonResponse({'message': 'Wrong method'}, status=400)
 
 
-def property_edit(request,property_id):
-    p = Property.objects.get(id = property_id)
+def property_edit(request, property_id):
+    p = Property.objects.get(id=property_id)
     
 
 
@@ -153,41 +174,80 @@ def property_edit(request,property_id):
 # BOOKINGS FUNCTIONS
 #------------------------------
 
-# Return all user's bookings  [GET]
-def booking_info(request,user_id):
-    All_bookings = []
-    a = Booking.objects.filter(buyer_id = user_id)
-    
-    for b in a:
-        new = model_to_dict(b)
-        All_bookings.append(new)
-    
-    json_booking = json.dumps(All_bookings, indent=4, default=str)
 
-    return HttpResponse(json_booking)
+def booking_info_create(request):
+    if request.method == 'GET' or request.method == 'POST':
+        user_id = checkToken(request)
+        if user_id is None:
+            return JsonResponse({'message': 'Unauthorized access'}, status=401)
+    else:
+        return JsonResponse({'message': 'Wrong method'}, status=400)
 
-# Create new booking [POST]
-def booking_create(request):
+    # Return all user's bookings  [GET]
+    if request.method == 'GET':
+        sell_bookings = []
+        buy_bookings = []
+        a = Booking.objects.select_related('property', 'buyer')
+        for one_booking in a:
+            model = model_to_dict(one_booking.property)
+
+            json_property = {
+                "id": model['id'],
+                "rooms": model['rooms'],
+                "area": model['area'],
+                "price": model['price'],
+                "address": model['address'],
+                "date": one_booking.time
+            }
+
+            if one_booking.buyer_id == user_id: #ktore kupujem
+                owner = User.objects.get(id=model['owner_id'])
+                json_property["seller"] = owner.name + " " + owner.surname
+                buy_bookings.append(json_property)
+            if model['owner_id'] == user_id: #ktore predavam
+                json_property["buyer"] = one_booking.buyer.name + " " + one_booking.buyer.surname
+                sell_bookings.append(json_property)
+
+        return JsonResponse({'buying': buy_bookings, 'selling': sell_bookings}, status=200)
+
+    # Create new booking [POST]
     if request.method == 'POST':
-       str = request.body.decode('UTF-8')
-       dictionary =json.loads(str)
+        str = request.body.decode('UTF-8')
+        dictionary = json.loads(str)
 
-       new_booking = Booking()
+        new_booking = Booking()
 
-       new_booking.property_id = dictionary['property_id']
-       new_booking.buyer_id = dictionary['buyer_id']
-       new_booking.time = dictionary['time']
+        new_booking.property_id = dictionary['property_id']
+        new_booking.buyer_id = dictionary['buyer_id']
+        new_booking.time = dictionary['time']
 
-       new_booking.save()
+        new_booking.save()
 
-    return HttpResponse()
+        return JsonResponse({'message': 'Booking added to database'}, status=201)
+
 
 # Delete existing booking [DELETE]
-def booking_delete(request,booking_id):
-    booking = Booking.objects.get(id == booking_id)
-    booking.delete()
+def booking_delete(request, booking_id):
+    if request.method == 'DELETE':
+        user_id = checkToken(request)
+        if user_id is None:
+            return JsonResponse({'message': 'Unauthorized access'}, status=401)
 
-    return HttpResponse()
+        ## Check if user is in booking or if booking exist
+        try:
+            booking = Booking.objects.get(id=booking_id)
+            property = Property.objects.get(id=booking.property_id)
+
+            if not (user_id == booking.buyer_id or user_id == property.owner_id):
+                return JsonResponse({'message': 'Unauthorized method'}, status=403)
+
+            booking.delete()
+            return JsonResponse({'message': 'Booking deleted'}, status=204)
+        except:
+            return JsonResponse({'message': 'Booking not Found'}, status=404)
+
+    return JsonResponse({'message': 'Wrong method'}, status=400)
+
 
 
 
@@ -195,55 +255,129 @@ def booking_delete(request,booking_id):
 
 # LIKED FUNCTIONS
 #-------------------------------
+def filter(request, parameters):
+    if request.method == 'GET':
+        user_id = checkToken(request)
+        if user_id is None:
+            return JsonResponse({'message': 'Unauthorized access'}, status=401)
 
-# Return all user's liked properties [GET]
-def liked_info(request,user_id):
-    All_liked = []
-    all = Liked.objects.select_related('property').filter(user_id = user_id)
-    
-    for one in all:
+        parametersList = parameters.split('+')
 
-        model_liked_one = model_to_dict(one.property)
-        
-        json_property = {
-            "id" : model_liked_one['id'],
-            "rooms" : model_liked_one['rooms'],
-            "area" : model_liked_one['area'],
-            "price" : model_liked_one['price'],
-            "region" : model_liked_one['region'],
-            "subregion" : model_liked_one['subregion'],
-            "last_updated" : model_liked_one['last_updated'],
-            "owner_id" : model_liked_one['owner_id'],
-            "address" : model_liked_one['address'],
-            "info" : model_liked_one['info'],
+        if len(parametersList) != 5:
+            JsonResponse({'message': 'Bad request'}, status=400)
 
-        }
-        
-        All_liked.append(json_property)
+        if parametersList[0] == "":
+            region = r'^.*$'
+        else:
+            region = r'^' + parametersList[0] + '$'
 
-    
-    json_liked = json.dumps(All_liked, indent=4, default=str)
+        if parametersList[1] == "":
+            subregion = r'^.*$'
+        else:
+            subregion = r'^' + parametersList[1] + '$'
 
-    return HttpResponse(json_liked)
+        if parametersList[2] != "":
+            priceA, priceB = parametersList[2].split('-')
+        else:
+            priceA = 0
+            priceB = 99999999
 
-# Add property to user's liked properties [POST]
-def liked_add(request):
+        if parametersList[3] != "":
+            sizeA, sizeB = parametersList[3].split('-')
+        else:
+            sizeA = 0
+            sizeB = 99999999
+
+        if parametersList[4] != "":
+            rooms = parametersList[4].split('-')
+        else:
+            rooms = [1, 2, 3, 4, 5, 6]
+
+        try:
+            properties = Property.objects.filter(
+                region__regex=r'^.*$',
+                subregion__regex=r'^.*$'
+                #price__level__gte=priceA
+                #price__level__lte=priceB,
+                #size__level__gte=sizeA,
+                #size__level__lte=sizeB#,
+                #rooms=rooms
+            )
+
+            filtered_properties = []
+            for prop in properties:
+                filtered_properties.append({
+                    "id": prop.id,
+                    "rooms": prop.rooms,
+                    "area": prop.area,
+                    "price": prop.price,
+                    "last_updated": prop.last_updated,
+                    "address": prop.address
+                    #"owner": prop.owner_id.name + " " + prop.owner_id.surname
+                })
+
+            return JsonResponse({'properties': filtered_properties}, status=201)
+        except:
+            return JsonResponse({'message': 'Not Found'}, status=404)
+    return JsonResponse({'message': 'Wrong method'}, status=400)
+
+
+def liked_info_create(request):
+    if request.method == 'GET' or request.method == 'POST':
+        user_id = checkToken(request)
+        if user_id is None:
+            return JsonResponse({'message': 'Unauthorized access'}, status=401)
+    else:
+        return JsonResponse({'message': 'Wrong method'}, status=400)
+
+    # Return all user's liked properties [GET]
+    if request.method == 'GET':
+        All_liked = []
+        all = Liked.objects.select_related('property', 'user').filter(user_id=user_id)
+
+        for one in all:
+            model_liked_one = model_to_dict(one.property)
+            json_property = {
+                "id": model_liked_one['id'],
+                "rooms": model_liked_one['rooms'],
+                "area": model_liked_one['area'],
+                "price": model_liked_one['price'],
+                "last_updated": model_liked_one['last_updated'],
+                "owner_id": one.user.name + " " + one.user.surname,
+                "address": model_liked_one['address']
+            }
+            All_liked.append(json_property)
+
+        return JsonResponse({'liked': All_liked}, status=200)
+
+    # Add property to user's liked properties [POST]
     if request.method == 'POST':
-       str = request.body.decode('UTF-8')
-       dictionary =json.loads(str)
+        str = request.body.decode('UTF-8')
+        dictionary = json.loads(str)
 
-       new_liked = Liked()
+        new_liked = Liked()
 
-       new_liked.property_id = dictionary['property_id']
-       new_liked.user_id = dictionary['user_id']
+        new_liked.property_id = dictionary['property_id']
+        new_liked.user_id = user_id
 
-       new_liked.save()
+        new_liked.save()
 
-    return HttpResponse()
+        return JsonResponse({'message': 'Property successfuly added to favourites'}, status=201)
 
 # Remove property from user's liked list [DELETE]
-def liked_remove(request,liked_id):
-    liked = Liked.objects.get(id == liked_id)
-    liked.delete()
+def liked_remove(request, liked_id):
+    if request.method == 'DELETE':
+        user_id = checkToken(request)
+        if user_id is None:
+            return JsonResponse({'message': 'Unauthorized access'}, status=401)
 
-    return HttpResponse()
+        try:
+            liked = Liked.objects.get(id=liked_id)
+            if user_id != liked.user_id:
+                return JsonResponse({'message': 'Unauthorized method'}, status=403)
+
+            liked.delete()
+            return JsonResponse({'message': 'Property removed from your favourites'}, status=204)
+        except:
+            return JsonResponse({'message': 'Not Found'}, status=404)
+    return JsonResponse({'message': 'Wrong method'}, status=400)

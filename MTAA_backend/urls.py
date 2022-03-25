@@ -15,17 +15,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+#from rest_framework_simplejwt import views as jwt_views
 from app import views
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', views.homepage, name='homepage'),
-    path('test/', views.postTest, name='postTest'),
-
-
-
-
-    # USERS
+    #USER
 
     # [POST] ( REGISTER USER )
     path('user/register/', views.register_user, name='register_user'),
@@ -33,10 +27,10 @@ urlpatterns = [
     # [POST] ( LOGIN USER )
     path('user/login/', views.login_user, name='login_user'),
 
-
+    # FILTER
 
     # [POST] ( LOGIN USER )
-    path('filter/bratislav/subregion/100-200/20-64/{}', views.login_user, name='login_user'),
+    path('filter/<str:parameters>/', views.filter, name='filter'),
 
 
 
@@ -60,13 +54,12 @@ urlpatterns = [
     # BOOKINGS
 
     # [GET] Show all user's booking
-    path('booking/<int:user_id>/', views.booking_info, name='booking_info'),
+    # [POST] Add booking
+    path('booking/', views.booking_info_create, name='booking_info_create'),
 
-    # [POST] Create new booking 
-    path('booking/', views.booking_create, name='booking_create'),
 
     # [DELETE] Delete existing booking
-    path('booking/<int:booking_id>/delete', views.booking_delete, name='booking_delete'),
+    path('booking/<int:booking_id>/delete/', views.booking_delete, name='booking_delete'),
 
 
 
@@ -74,13 +67,11 @@ urlpatterns = [
     # LIKED
 
     # [GET] Show all user's liked properties
-    path('liked/<int:user_id>/', views.liked_info, name='liked_info'),
-    
     # [POST] Add property to user's liked list
-    path('liked/', views.liked_add, name='liked_add'),
+    path('liked/', views.liked_info_create, name='liked_info_create'),
     
     # [DELETE] Remove property from user's liked list
-    path('liked/<int:liked_id>/', views.liked_remove, name='liked_remove'),
+    path('liked/<int:liked_id>/delete/', views.liked_remove, name='liked_remove'),
 
 
 

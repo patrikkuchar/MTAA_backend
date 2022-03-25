@@ -26,8 +26,11 @@ class Property(models.Model):
     db_table = "properties"
 
 class Booking(models.Model):
-  property_id = models.BigIntegerField()
-  buyer_id = models.BigIntegerField()
+  #property_id = models.BigIntegerField()
+  #buyer_id = models.BigIntegerField()
+
+  property = models.ForeignKey(Property, related_name="properties", blank=True, null=True, on_delete=models.SET_NULL)
+  buyer = models.ForeignKey(User, related_name="users", blank=True, null=True, on_delete=models.SET_NULL)
   time = models.DateTimeField()
 
   class Meta:
@@ -42,8 +45,8 @@ class Image(models.Model):
 
 
 class Liked(models.Model):
-  property = models.ForeignKey(Property, related_name="properties", blank=True, null=True, on_delete=models.SET_NULL)
-  user = models.ForeignKey(User, related_name="users", blank=True, null=True,on_delete=models.SET_NULL)
+  property = models.ForeignKey(Property, related_name="propertiesa", blank=True, null=True, on_delete=models.SET_NULL)
+  user = models.ForeignKey(User, related_name="usersa", blank=True, null=True, on_delete=models.SET_NULL)
 
   class Meta:
     db_table = "liked"
