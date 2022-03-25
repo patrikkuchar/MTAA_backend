@@ -249,10 +249,6 @@ def booking_delete(request, booking_id):
     return JsonResponse({'message': 'Wrong method'}, status=400)
 
 
-
-
-
-
 # LIKED FUNCTIONS
 #-------------------------------
 def filter(request, parameters):
@@ -295,30 +291,33 @@ def filter(request, parameters):
 
         try:
             properties = Property.objects.filter(
-                region__regex=r'^.*$',
-                subregion__regex=r'^.*$'
-                #price__level__gte=priceA
-                #price__level__lte=priceB,
-                #size__level__gte=sizeA,
-                #size__level__lte=sizeB#,
-                #rooms=rooms
+                region__regex=region,
+                subregion__regex=subregion,
+                price__gte=priceA,
+                price__lte=priceB,
+                area__gte=sizeA,
+                area__lte=sizeB,
+                rooms__in=rooms
             )
 
             filtered_properties = []
             for prop in properties:
+                ## get owner of property
+                owner = User.objects.get(id=prop.owner_id)
+
                 filtered_properties.append({
                     "id": prop.id,
                     "rooms": prop.rooms,
                     "area": prop.area,
                     "price": prop.price,
                     "last_updated": prop.last_updated,
-                    "address": prop.address
-                    #"owner": prop.owner_id.name + " " + prop.owner_id.surname
+                    "address": prop.address,
+                    "owner": owner.name + " " + owner.surname
                 })
 
             return JsonResponse({'properties': filtered_properties}, status=201)
         except:
-            return JsonResponse({'message': 'Not Found'}, status=404)
+            return JsonResponse({'message': 'Bad Request'}, status=400)
     return JsonResponse({'message': 'Wrong method'}, status=400)
 
 
