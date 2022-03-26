@@ -1,4 +1,3 @@
-
 import code
 from pyexpat import model
 from types import CodeType
@@ -20,15 +19,15 @@ import datetime
 
 from django.forms.models import model_to_dict
 
-
 from app.models import Booking, Liked, User, Property
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 
+
 def checkToken(request):
     try:
         token = request.headers["Authorization"]
-        token = token.split(' ')[1] #možno nebude potrebné splitovať, keď to bude volať frontend
+        token = token.split(' ')[1]  # možno nebude potrebné splitovať, keď to bude volať frontend
     except:
         return None
     try:
@@ -40,11 +39,8 @@ def checkToken(request):
         return None
 
 
-
-
-
 # USER functions
-#-------------------------------
+# -------------------------------
 
 # Registering user (adding to database) [POST]
 def register_user(request):
@@ -52,7 +48,7 @@ def register_user(request):
         str = request.body.decode('UTF-8')
         dictionary = json.loads(str)
 
-        #validacia či nie je email už používaný
+        # validacia či nie je email už používaný
         try:
             User.objects.get(email=dictionary['email'])
             return JsonResponse({'message': 'Email already taken'}, status=400)
@@ -70,6 +66,7 @@ def register_user(request):
         return JsonResponse({'message': 'Account created'}, status=201)
 
     return JsonResponse({'message': 'Wrong method'}, status=400)
+
 
 # Logging in user < ++ Working on it>
 def login_user(request):
@@ -92,17 +89,49 @@ def login_user(request):
 
     return JsonResponse({'message': 'Wrong method'}, status=400)
 
-    
-    
+def change_password(request):
+    if request.method == 'PATCH':
+        user_id = checkToken(request)
+        if user_id is None:
+            return JsonResponse({'message': 'Unauthorized access'}, status=401)
+
+        str = request.body.decode('UTF-8')
+        dictionary = json.loads(str)
+
+        # validacia stareho hesla
+        try:
+            user = User.objects.get(id=user_id)
+            if user.password != dictionary['old_password']:
+                return JsonResponse({'message': 'Incorrect old password'}, status=400)
+        except:
+            return JsonResponse({'message': 'Incorrect old password'}, status=400)
+
+        # validacia noveho hesla
+        if len(dictionary['new_password']) < 8:
+            return JsonResponse({'message': 'Password must be at least 8 characters long'}, status=400)
+
+        # validacia dokoncenia noveho hesla
+        if dictionary['new_password'] != dictionary['new_password_confirm']:
+            return JsonResponse({'message': 'Passwords do not match'}, status=400)
+
+        # zmena hesla
+        try:
+            user = User.objects.get(id=user_id)
+            user.password = dictionary['new_password']
+            user.save()
+            return JsonResponse({'message': 'Password changed'}, status=200)
+        except:
+            return JsonResponse({'message': 'Password change failed'}, status=400)
+    return JsonResponse({'message': 'Wrong method'}, status=400)
+
+
+
+
 # FILTER
 
 
-
-
-
-
-#PROPERTY functions
-#--------------------------------
+# PROPERTY functions
+# --------------------------------
 
 # Returning json object from Property [GET]
 # property/<int:property_id>/
@@ -117,6 +146,7 @@ def property_info(request, property_id):
 
         return JsonResponse(prop, status=200)
     return JsonResponse({'message': 'Wrong method'}, status=400)
+
 
 # Adding new property to database (+ TO DO = images adding ) [POST]
 def property_add(request):
@@ -144,8 +174,9 @@ def property_add(request):
         return JsonResponse({'message': 'Property successfully added'}, status=201)
     return JsonResponse({'message': 'Wrong method'}, status=400)
 
+
 # Deleting property from database [DELETE]
-def property_delete(request,property_id):
+def property_delete(request, property_id):
     if request.method == 'DELETE':
         user_id = checkToken(request)
         if user_id is None:
@@ -165,14 +196,38 @@ def property_delete(request,property_id):
 
 
 def property_edit(request, property_id):
-    p = Property.objects.get(id=property_id)
-    
+    if request.method == 'PUT':
+        user_id = checkToken(request)
+        if user_id is None:
+            return JsonResponse({'message': 'Unauthorized access'}, status=401)
 
+        str = request.body.decode('UTF-8')
+        dictionary = json.loads(str)
+
+        # property in database
+        try:
+            p = Property.objects.get(id=property_id)
+            if p['owner_id'] != user_id:
+                return JsonResponse({'message': 'You do not own this property'}, status=403)
+
+            p.rooms = dictionary['rooms']
+            p.area = dictionary['area']
+            p.price = dictionary['price']
+            p.region = dictionary['region']
+            p.subregion = dictionary['subregion']
+            p.last_updated = dictionary['last_updated']
+            p.address = dictionary['info']
+            p.save()
+            ## doplniť tie obrázky ktoré sa pridajú
+            return JsonResponse({'message': 'Property successfully edited'}, status=200)
+        except:
+            return JsonResponse({'message': 'Not Found'}, status=404)
+    return JsonResponse({'message': 'Wrong method'}, status=400)
 
 
 
 # BOOKINGS FUNCTIONS
-#------------------------------
+# ------------------------------
 
 
 def booking_info_create(request):
@@ -200,11 +255,11 @@ def booking_info_create(request):
                 "date": one_booking.time
             }
 
-            if one_booking.buyer_id == user_id: #ktore kupujem
+            if one_booking.buyer_id == user_id:  # ktore kupujem
                 owner = User.objects.get(id=model['owner_id'])
                 json_property["seller"] = owner.name + " " + owner.surname
                 buy_bookings.append(json_property)
-            if model['owner_id'] == user_id: #ktore predavam
+            if model['owner_id'] == user_id:  # ktore predavam
                 json_property["buyer"] = one_booking.buyer.name + " " + one_booking.buyer.surname
                 sell_bookings.append(json_property)
 
@@ -250,14 +305,17 @@ def booking_delete(request, booking_id):
 
 
 # LIKED FUNCTIONS
-#-------------------------------
+# -------------------------------
 def filter(request, parameters):
     if request.method == 'GET':
         user_id = checkToken(request)
         if user_id is None:
             return JsonResponse({'message': 'Unauthorized access'}, status=401)
 
-        parametersList = parameters.split('+')
+        try:
+            parametersList = parameters.split('+')
+        except:
+            return JsonResponse({'message': 'Wrong parameters'}, status=400)
 
         if len(parametersList) != 5:
             JsonResponse({'message': 'Bad request'}, status=400)
@@ -302,7 +360,7 @@ def filter(request, parameters):
 
             filtered_properties = []
             for prop in properties:
-                ## get owner of property
+                # get owner of property
                 owner = User.objects.get(id=prop.owner_id)
 
                 filtered_properties.append({
@@ -362,6 +420,7 @@ def liked_info_create(request):
         new_liked.save()
 
         return JsonResponse({'message': 'Property successfuly added to favourites'}, status=201)
+
 
 # Remove property from user's liked list [DELETE]
 def liked_remove(request, liked_id):

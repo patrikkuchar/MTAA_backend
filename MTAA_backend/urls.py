@@ -15,7 +15,6 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-#from rest_framework_simplejwt import views as jwt_views
 from app import views
 
 urlpatterns = [
@@ -26,6 +25,9 @@ urlpatterns = [
 
     # [POST] ( LOGIN USER )
     path('user/login/', views.login_user, name='login_user'),
+
+    # [PATCH] ( EDIT USER )
+    path('user/edit/', views.change_password, name='change_password'),
 
     # FILTER
 
@@ -47,6 +49,9 @@ urlpatterns = [
 
     # [DELETE] (Delete property from DATABASE)
     path('property/<int:property_id>/delete/', views.property_delete, name='property_delete'),
+
+    # [PUT] (Edit property from DATABASE)
+    path('property/<int:property_id>/edit/', views.property_edit, name='property_edit'),
 
 
 
