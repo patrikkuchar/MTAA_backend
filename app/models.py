@@ -18,7 +18,7 @@ class Property(models.Model):
   region = models.CharField(max_length=255)
   subregion = models.CharField(max_length=255)
   last_updated = models.DateTimeField()
-  owner_id = models.BigIntegerField()
+  owner = models.ForeignKey(User, related_name="userss", blank=True, null=True, on_delete=models.SET_NULL)
   address = models.CharField(max_length=255)
   info = models.TextField()
 
@@ -39,6 +39,7 @@ class Booking(models.Model):
 class Image(models.Model):
   property_id = models.BigIntegerField()
   image_url = models.CharField(max_length=255)
+  title = models.BooleanField()
 
   class Meta:
     db_table = "images"

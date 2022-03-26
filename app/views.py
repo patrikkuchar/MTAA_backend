@@ -119,7 +119,7 @@ def change_password(request):
             user = User.objects.get(id=user_id)
             user.password = dictionary['new_password']
             user.save()
-            return JsonResponse({'message': 'Password changed'}, status=200)
+            return JsonResponse({'message': 'Password changed'}, status=203)
         except:
             return JsonResponse({'message': 'Password change failed'}, status=400)
     return JsonResponse({'message': 'Wrong method'}, status=400)
@@ -141,10 +141,22 @@ def property_info(request, property_id):
         if user_id is None:
             return JsonResponse({'message': 'Unauthorized access'}, status=401)
 
-        prop = Property.objects.get(id=property_id)
-        prop = model_to_dict(prop)
+        prop = Property.objects.select_related('owner').get(id=property_id)
+        prop_dict = {
+            'id': prop.id,
+            'rooms': prop.rooms,
+            'area': prop.area,
+            'price': prop.price,
+            'region': prop.region,
+            'subregion': prop.subregion,
+            'last_updated': prop.last_updated,
+            'address': prop.address,
+            'info': prop.info,
+            'owner': prop.owner.name + ' ' + prop.owner.surname,
+            'owner_id': prop.owner.id
+        }
 
-        return JsonResponse(prop, status=200)
+        return JsonResponse({'property': prop_dict}, status=200)
     return JsonResponse({'message': 'Wrong method'}, status=400)
 
 
@@ -158,6 +170,14 @@ def property_add(request):
         str = request.body.decode('UTF-8')
         dictionary = json.loads(str)
 
+        # validate area
+        if dictionary['area'] < 0:
+            return JsonResponse({'message': 'Area cannot be negative'}, status=400)
+
+        # validate price
+        if dictionary['price'] < 0:
+            return JsonResponse({'message': 'Price cannot be negative'}, status=400)
+
         new_property = Property()
 
         new_property.rooms = dictionary['rooms']
@@ -167,7 +187,29 @@ def property_add(request):
         new_property.subregion = dictionary['subregion']
         new_property.last_updated = dictionary['last_updated']
         new_property.owner_id = user_id
-        new_property.address = dictionary['info']
+        new_property.address = dictionary['address']
+        new_property.info = dictionary['info']
+
+        if len(dictionary['images']) != len(dictionary['image_names']):
+            return JsonResponse({'message': 'Bad request'}, status=400)
+
+        if len(dictionary['images']) >= 3:
+            for i, img_bytes in enumerate(dictionary['images']):
+
+                new_image = Image()
+
+                image_url = "../images/property_" + str(new_property.id) + "/img" + str(i)
+
+                new_image.property_id = new_property.id
+                new_image.image_url = image_url
+                if i == dictionary['title_image']:
+                    new_image.title = True
+                else:
+                    new_image.title = False
+
+                new_image.save()
+        else:
+            return JsonResponse({'message': 'Bad request'}, status=400)
 
         new_property.save()
 
