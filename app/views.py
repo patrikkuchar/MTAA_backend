@@ -16,6 +16,8 @@ from django.db import models
 import json
 import jwt
 import datetime
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 
 from django.forms.models import model_to_dict
 
@@ -54,6 +56,9 @@ def register_user(request):
             return JsonResponse({'message': 'Email already taken'}, status=400)
         except:
             pass
+
+        if len(dictionary['password']) < 8:
+            return JsonResponse({'message': 'Password must be at least 8 characters long'}, status=400)
 
         p = User()
 
@@ -106,11 +111,13 @@ def change_password(request):
         except:
             return JsonResponse({'message': 'Incorrect old password'}, status=400)
 
-        # validacia noveho hesla
+        # validacia hesla
         if len(dictionary['new_password']) < 8:
             return JsonResponse({'message': 'Password must be at least 8 characters long'}, status=400)
 
-        # validacia dokoncenia noveho hesla
+        if dictionary['old_password'] == dictionary['new_password']:
+            return JsonResponse({'message': 'New password must be different from old password'}, status=400)
+
         if dictionary['new_password'] != dictionary['new_password_confirm']:
             return JsonResponse({'message': 'Passwords do not match'}, status=400)
 
@@ -119,7 +126,7 @@ def change_password(request):
             user = User.objects.get(id=user_id)
             user.password = dictionary['new_password']
             user.save()
-            return JsonResponse({'message': 'Password changed'}, status=203)
+            return JsonResponse({'message': 'Password changed'}, status=204)
         except:
             return JsonResponse({'message': 'Password change failed'}, status=400)
     return JsonResponse({'message': 'Wrong method'}, status=400)
@@ -156,14 +163,41 @@ def property_info(request, property_id):
             'owner_id': prop.owner.id
         }
 
+        try:
+            images = Image.objects.filter(property=prop)
+            images_list = []
+            for image in images:
+                f = open(image.image_url, 'rb')
+                img_bytes = f.read()
+                images_list.append(img_bytes)
+            prop_dict['images'] = images_list
+        except:
+            prop_dict['images'] = []
+
         return JsonResponse({'property': prop_dict}, status=200)
     return JsonResponse({'message': 'Wrong method'}, status=400)
 
-def test_function(request):
-    property_id = 10
+def edit_images(request, property_id):
+    if request.method == 'POST':
+        user_id = checkToken(request)
+        if user_id is None:
+            return JsonResponse({'message': 'Unauthorized access'}, status=401)
 
-    #z body
-    tilte_img = 5 #dictrionary['title_img']
+        if add_images(request, property_id, request.POST["image_title"]):
+            return JsonResponse({'message': 'Images added'}, status=201)
+        return JsonResponse({'message': 'Images not added'}, status=400)
+    return JsonResponse({'message': 'Wrong method'}, status=400)
+
+
+def add_images(request, property_id, title_img):
+
+    try:
+        images = Image.objects.filter(property=property_id)
+        for image in images:
+            default_storage.delete(image.image_url)
+            image.delete()
+    except:
+        pass
 
 
     images_arr = []
@@ -175,15 +209,18 @@ def test_function(request):
     except:
         pass
 
+    if len(images_arr) < 3 or title_img >= len(images_arr):
+        return False
+
     for i, image_bytes in enumerate(images_arr):
-        image_url = "app/images/property_" + str(property_id) + "/img" + str(i)
+        image_url = "app/images/" + str(property_id) + "_" + str(i)
         new_image = Image()
 
         prop = Property.objects.get(id=property_id)
 
         new_image.property = prop
         new_image.image_url = image_url
-        if tilte_img == i:
+        if title_img == i:
             new_image.title = True
         else:
             new_image.title = False
@@ -192,11 +229,11 @@ def test_function(request):
             with open(image_url, 'wb') as f:
                 f.write(image_bytes)
         except:
-            return JsonResponse({'message': 'Image upload failed'}, status=400)
+            return False
 
         new_image.save()
 
-    return JsonResponse({'message': 'Image uploaded'}, status=200)
+    return True
 
 # Adding new property to database (+ TO DO = images adding ) [POST]
 def property_add(request):
@@ -205,8 +242,9 @@ def property_add(request):
         if user_id is None:
             return JsonResponse({'message': 'Unauthorized access'}, status=401)
 
-        str = request.body.decode('UTF-8')
-        dictionary = json.loads(str)
+        #str = request.body.decode('UTF-8')
+        #dictionary = json.loads(str)
+        dictionary = request.POST
 
         # validate area
         if dictionary['area'] < 0:
@@ -228,27 +266,8 @@ def property_add(request):
         new_property.address = dictionary['address']
         new_property.info = dictionary['info']
 
-
-        if len(dictionary['images']) >= 3:
-            for i, img_bytes in enumerate(dictionary['images']):
-
-                new_image = Image()
-
-                image_url = "../images/property_" + str(new_property.id) + "/img" + str(i)
-
-                new_image.property_id = new_property.id
-                new_image.image_url = image_url
-                if i == dictionary['title_image']:
-                    new_image.title = True
-                else:
-                    new_image.title = False
-
-                new_image.save()
-
-                with open(image_url, 'wb') as f:
-                    f.write(img_bytes)
-        else:
-            return JsonResponse({'message': 'Bad request'}, status=400)
+        if not add_images(request, new_property.id, dictionary['title_image']):
+            return JsonResponse({'message': 'Error while adding images'}, status=400)
 
         new_property.save()
 
@@ -263,11 +282,23 @@ def property_delete(request, property_id):
         if user_id is None:
             return JsonResponse({'message': 'Unauthorized access'}, status=401)
 
-        # property in database
         try:
             p = Property.objects.get(id=property_id)
             if p['owner_id'] != user_id:
                 return JsonResponse({'message': 'You do not own this property'}, status=403)
+
+            images = Image.objects.filter(property=property_id)
+            for image in images:
+                default_storage.delete(image.image_url)
+                image.delete()
+
+            booking = Booking.objects.filter(property=property_id)
+            for b in booking:
+                b.delete()
+
+            liked = Liked.objects.filter(property=property_id)
+            for l in liked:
+                l.delete()
 
             p.delete()
             return JsonResponse({'message': 'Property successfully removed'}, status=204)
@@ -285,6 +316,14 @@ def property_edit(request, property_id):
         str = request.body.decode('UTF-8')
         dictionary = json.loads(str)
 
+        # validate area
+        if dictionary['area'] < 0:
+            return JsonResponse({'message': 'Area cannot be negative'}, status=400)
+
+        # validate price
+        if dictionary['price'] < 0:
+            return JsonResponse({'message': 'Price cannot be negative'}, status=400)
+
         # property in database
         try:
             p = Property.objects.get(id=property_id)
@@ -296,7 +335,7 @@ def property_edit(request, property_id):
             p.price = dictionary['price']
             p.region = dictionary['region']
             p.subregion = dictionary['subregion']
-            p.last_updated = dictionary['last_updated']
+            p.last_updated = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             p.address = dictionary['info']
             p.save()
             ## doplniť tie obrázky ktoré sa pridajú
@@ -444,6 +483,11 @@ def filter(request, parameters):
                 # get owner of property
                 owner = User.objects.get(id=prop.owner_id)
 
+                image = Image.objects.filter(property_id=prop.id, title=True)
+
+                f = open(image.image_url, 'rb')
+                img_bytes = f.read()
+
                 filtered_properties.append({
                     "id": prop.id,
                     "rooms": prop.rooms,
@@ -451,7 +495,8 @@ def filter(request, parameters):
                     "price": prop.price,
                     "last_updated": prop.last_updated,
                     "address": prop.address,
-                    "owner": owner.name + " " + owner.surname
+                    "owner": owner.name + " " + owner.surname,
+                    "image": img_bytes
                 })
 
             return JsonResponse({'properties': filtered_properties}, status=201)

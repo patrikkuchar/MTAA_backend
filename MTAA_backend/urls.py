@@ -35,8 +35,8 @@ urlpatterns = [
     path('filter/<str:parameters>/', views.filter, name='filter'),
 
 
-    ##terst
-    path('test/', views.test_function, name='test'),
+    # [POST] ( ADD IMAGES )
+    path('images/', views.edit_images, name='edit_images'),
 
 
 
