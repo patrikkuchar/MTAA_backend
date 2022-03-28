@@ -37,7 +37,7 @@ class Booking(models.Model):
     db_table = "bookings"
 
 class Image(models.Model):
-  property_id = models.BigIntegerField()
+  property = models.ForeignKey(Property, related_name="propertiess", blank=True, null=True, on_delete=models.SET_NULL)
   image_url = models.CharField(max_length=255)
   title = models.BooleanField()
 

@@ -35,6 +35,9 @@ urlpatterns = [
     path('filter/<str:parameters>/', views.filter, name='filter'),
 
 
+    ##terst
+    path('test/', views.test_function, name='test'),
+
 
 
 

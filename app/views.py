@@ -19,7 +19,7 @@ import datetime
 
 from django.forms.models import model_to_dict
 
-from app.models import Booking, Liked, User, Property
+from app.models import Booking, Liked, User, Property, Image
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 
@@ -159,6 +159,44 @@ def property_info(request, property_id):
         return JsonResponse({'property': prop_dict}, status=200)
     return JsonResponse({'message': 'Wrong method'}, status=400)
 
+def test_function(request):
+    property_id = 10
+
+    #z body
+    tilte_img = 5 #dictrionary['title_img']
+
+
+    images_arr = []
+    try:
+        count = 0
+        while True:
+            images_arr.append(request.FILES['image' + str(count)].read())
+            count += 1
+    except:
+        pass
+
+    for i, image_bytes in enumerate(images_arr):
+        image_url = "app/images/property_" + str(property_id) + "/img" + str(i)
+        new_image = Image()
+
+        prop = Property.objects.get(id=property_id)
+
+        new_image.property = prop
+        new_image.image_url = image_url
+        if tilte_img == i:
+            new_image.title = True
+        else:
+            new_image.title = False
+
+        try:
+            with open(image_url, 'wb') as f:
+                f.write(image_bytes)
+        except:
+            return JsonResponse({'message': 'Image upload failed'}, status=400)
+
+        new_image.save()
+
+    return JsonResponse({'message': 'Image uploaded'}, status=200)
 
 # Adding new property to database (+ TO DO = images adding ) [POST]
 def property_add(request):
@@ -185,13 +223,11 @@ def property_add(request):
         new_property.price = dictionary['price']
         new_property.region = dictionary['region']
         new_property.subregion = dictionary['subregion']
-        new_property.last_updated = dictionary['last_updated']
+        new_property.last_updated = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         new_property.owner_id = user_id
         new_property.address = dictionary['address']
         new_property.info = dictionary['info']
 
-        if len(dictionary['images']) != len(dictionary['image_names']):
-            return JsonResponse({'message': 'Bad request'}, status=400)
 
         if len(dictionary['images']) >= 3:
             for i, img_bytes in enumerate(dictionary['images']):
@@ -208,12 +244,15 @@ def property_add(request):
                     new_image.title = False
 
                 new_image.save()
+
+                with open(image_url, 'wb') as f:
+                    f.write(img_bytes)
         else:
             return JsonResponse({'message': 'Bad request'}, status=400)
 
         new_property.save()
 
-        return JsonResponse({'message': 'Property successfully added'}, status=201)
+        return JsonResponse({'message': 'Property added'}, status=201)
     return JsonResponse({'message': 'Wrong method'}, status=400)
 
 
@@ -315,7 +354,7 @@ def booking_info_create(request):
         new_booking = Booking()
 
         new_booking.property_id = dictionary['property_id']
-        new_booking.buyer_id = dictionary['buyer_id']
+        new_booking.buyer_id = user_id
         new_booking.time = dictionary['time']
 
         new_booking.save()
