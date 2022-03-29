@@ -95,6 +95,15 @@ urlpatterns = [
 
 
 
+    # CALL
+    
+
+    # [GET] Booking check
+    path('booking/<int:booking_id>/call/', views.booking_call, name='booking_call'),
+
+
+
+
 
 
 
