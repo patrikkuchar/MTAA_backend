@@ -458,21 +458,39 @@ def property_edit(request, property_id):
 
 def regions(request):
     if request.method == 'GET':
+        all_regions=[]
         try:
-            region = Region.objects.all()
+            regions = Region.objects.all()
+           
+            for region in regions:
+                
+                all_regions.append({
+                    "name": region.name,
+                })
+                    
+        
+            return JsonResponse(all_regions, safe=False)
+            
+           
 
-            return JsonResponse(region.to_dict(), status=200)
         except:
             return JsonResponse({'message': 'Not Found'}, status=404)
     return JsonResponse({'message': 'Wrong method'}, status=400)
 
 
 def subregions(request, region_id):
+    all_subregions = []
     if request.method == 'GET':
         try:
-            subregion = Subregion.objects.filter(region=region_id)
+            subregions = Subregion.objects.filter(region=region_id)
+            for subregion in subregions:
+                all_subregions.append({
+                    "name": subregion.name,
+                })
 
-            return JsonResponse(subregion.to_dict(), status=200)
+                print(all_subregions)
+
+            return JsonResponse({'subregions': all_subregions}, status=200)
         except:
             return JsonResponse({'message': 'Not Found'}, status=404)
     return JsonResponse({'message': 'Wrong method'}, status=400)
