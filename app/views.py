@@ -21,7 +21,7 @@ from django.core.files.storage import default_storage
 
 from django.forms.models import model_to_dict
 
-from app.models import Booking, Liked, User, Property, Image
+from app.models import Booking, Liked, User, Property, Image, Region, Subregion
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 
@@ -88,7 +88,15 @@ def login_user(request):
 
             token = jwt.encode(payload, 'secret', algorithm='HS256').decode('utf-8')
 
-            return JsonResponse({'jwt': token}, status=200)
+            dict = {
+                'id': user.id,
+                'name': user.name,
+                'surname': user.surname,
+                'email': user.email,
+                'token': token
+            }
+
+            return JsonResponse(dict, status=200)
         except:
             return JsonResponse({'message': 'Incorrect email or password'}, status=400)
 
@@ -135,27 +143,111 @@ def change_password(request):
 
 
 # FILTER
+def filter(request, parameters):
+    if request.method == 'GET':
+        user_id = checkToken(request)
+        if user_id is None:
+            return JsonResponse({'message': 'Unauthorized access'}, status=401)
+
+        try:
+            parametersList = parameters.split('+')
+        except:
+            return JsonResponse({'message': 'Wrong parameters'}, status=400)
+
+        if len(parametersList) != 5:
+            JsonResponse({'message': 'Bad request'}, status=400)
+
+        properties = None
+
+        # get property by region
+        try:
+            if len(parametersList) == 4:
+                properties = Property.objects.all()
+            elif int(parametersList[0]) >= 1 and int(parametersList[0]) <= 8 and parametersList[1] == "" and parametersList[2] == "" and parametersList[3] == "" and parametersList[4] == "":
+                subregion = Subregion.objects.filter(region=int(parametersList[0]))
+            else:
+                subregion = Subregion.objects.filter(id=int(parametersList[1]))
+        except:
+            return JsonResponse({'message': 'Bad request'}, status=400)
+
+
+        if not properties:
+            if parametersList[2] != "":
+                priceA, priceB = parametersList[2].split('-')
+            else:
+                priceA = 0
+                priceB = 999999999
+
+            if parametersList[3] != "":
+                sizeA, sizeB = parametersList[3].split('-')
+            else:
+                sizeA = 0
+                sizeB = 999999999
+
+            if parametersList[4] != "":
+                rooms = int(parametersList[4].split('-'))
+            else:
+                rooms = [1, 2, 3, 4, 5, 6]
+
+            try:
+                properties = Property.objects.filter(
+                    subregion__in=subregion,
+                    price__gte=priceA,
+                    price__lte=priceB,
+                    area__gte=sizeA,
+                    area__lte=sizeB,
+                    rooms__in=rooms
+                )
+            except:
+                return JsonResponse({'message': 'Bad request'}, status=400)
+
+        try:
+            filtered_properties = []
+            for prop in properties:
+                # get owner of property
+                owner = User.objects.get(id=prop.owner_id)
+
+                image = Image.objects.filter(property_id=prop.id, title=True)
+
+                f = open(image.image_url, 'rb')
+                img_bytes = f.read()
+
+                filtered_properties.append({
+                    "id": prop.id,
+                    "rooms": prop.rooms,
+                    "area": prop.area,
+                    "price": prop.price,
+                    "last_updated": prop.last_updated,
+                    "address": prop.address,
+                    "owner": owner.name + " " + owner.surname,
+                    "image": img_bytes
+                })
+
+            return JsonResponse({'properties': filtered_properties}, status=200)
+        except:
+            return JsonResponse({'message': 'Bad Request'}, status=400)
+    return JsonResponse({'message': 'Wrong method'}, status=400)
 
 
 # PROPERTY functions
 # --------------------------------
 
 # Returning json object from Property [GET]
-# property/<int:property_id>/
 def property_info(request, property_id):
     if request.method == 'GET':
         user_id = checkToken(request)
         if user_id is None:
             return JsonResponse({'message': 'Unauthorized access'}, status=401)
 
-        prop = Property.objects.select_related('owner').get(id=property_id)
+        prop = Property.objects.select_related('owner', 'subregion').get(id=property_id)
+        region = Region.objects.get(id=prop.subregion.region)
         prop_dict = {
             'id': prop.id,
             'rooms': prop.rooms,
             'area': prop.area,
             'price': prop.price,
-            'region': prop.region,
-            'subregion': prop.subregion,
+            'region': region.name,
+            'subregion': prop.subregion.name,
             'last_updated': prop.last_updated,
             'address': prop.address,
             'info': prop.info,
@@ -177,11 +269,12 @@ def property_info(request, property_id):
         return JsonResponse({'property': prop_dict}, status=200)
     return JsonResponse({'message': 'Wrong method'}, status=400)
 
+# Edit images [POST]
 def edit_images(request, property_id):
     if request.method == 'POST':
-        user_id = checkToken(request)
-        if user_id is None:
-            return JsonResponse({'message': 'Unauthorized access'}, status=401)
+        #user_id = checkToken(request)
+        #if user_id is None:
+        #    return JsonResponse({'message': 'Unauthorized access'}, status=401)
 
         if add_images(request, property_id, request.POST["image_title"]):
             return JsonResponse({'message': 'Images added'}, status=201)
@@ -204,7 +297,7 @@ def add_images(request, property_id, title_img):
     try:
         count = 0
         while True:
-            images_arr.append(request.FILES['image' + str(count)].read())
+            images_arr.append(request.FILES['img' + str(count)].read())
             count += 1
     except:
         pass
@@ -254,13 +347,18 @@ def property_add(request):
         if dictionary['price'] < 0:
             return JsonResponse({'message': 'Price cannot be negative'}, status=400)
 
+        try:
+            subregion = Subregion.objects.get(id=dictionary['subregion'])
+        except:
+            return JsonResponse({'message': 'Subregion does not exist'}, status=404)
+
         new_property = Property()
 
         new_property.rooms = dictionary['rooms']
         new_property.area = dictionary['area']
         new_property.price = dictionary['price']
         new_property.region = dictionary['region']
-        new_property.subregion = dictionary['subregion']
+        new_property.subregion = subregion
         new_property.last_updated = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         new_property.owner_id = user_id
         new_property.address = dictionary['address']
@@ -345,6 +443,30 @@ def property_edit(request, property_id):
     return JsonResponse({'message': 'Wrong method'}, status=400)
 
 
+# REGIONS FUNCTIONS
+# -----------------------------
+
+def regions(request):
+    if request.method == 'GET':
+        try:
+            region = Region.objects.all()
+
+            return JsonResponse(region.to_dict(), status=200)
+        except:
+            return JsonResponse({'message': 'Not Found'}, status=404)
+    return JsonResponse({'message': 'Wrong method'}, status=400)
+
+
+def subregions(request, region_id):
+    if request.method == 'GET':
+        try:
+            subregion = Subregion.objects.filter(region=region_id)
+
+            return JsonResponse(subregion.to_dict(), status=200)
+        except:
+            return JsonResponse({'message': 'Not Found'}, status=404)
+    return JsonResponse({'message': 'Wrong method'}, status=400)
+
 
 # BOOKINGS FUNCTIONS
 # ------------------------------
@@ -400,6 +522,20 @@ def booking_info_create(request):
 
         return JsonResponse({'message': 'Booking added to database'}, status=201)
 
+def booking_call(request, booking_id):
+    if request.method == 'GET':
+        user_id = checkToken(request)
+        if user_id is None:
+            return JsonResponse({'message': 'Unauthorized access'}, status=401)
+
+        try:
+            booking = Booking.objects.get(id=booking_id)
+
+            return JsonResponse({'message': 'Booking found'}, status=200)
+        except:
+            return JsonResponse({'message': 'Not Found'}, status=404)
+    return JsonResponse({'message': 'Wrong method'}, status=400)
+
 
 # Delete existing booking [DELETE]
 def booking_delete(request, booking_id):
@@ -426,83 +562,7 @@ def booking_delete(request, booking_id):
 
 # LIKED FUNCTIONS
 # -------------------------------
-def filter(request, parameters):
-    if request.method == 'GET':
-        user_id = checkToken(request)
-        if user_id is None:
-            return JsonResponse({'message': 'Unauthorized access'}, status=401)
 
-        try:
-            parametersList = parameters.split('+')
-        except:
-            return JsonResponse({'message': 'Wrong parameters'}, status=400)
-
-        if len(parametersList) != 5:
-            JsonResponse({'message': 'Bad request'}, status=400)
-
-        if parametersList[0] == "":
-            region = r'^.*$'
-        else:
-            region = r'^' + parametersList[0] + '$'
-
-        if parametersList[1] == "":
-            subregion = r'^.*$'
-        else:
-            subregion = r'^' + parametersList[1] + '$'
-
-        if parametersList[2] != "":
-            priceA, priceB = parametersList[2].split('-')
-        else:
-            priceA = 0
-            priceB = 99999999
-
-        if parametersList[3] != "":
-            sizeA, sizeB = parametersList[3].split('-')
-        else:
-            sizeA = 0
-            sizeB = 99999999
-
-        if parametersList[4] != "":
-            rooms = parametersList[4].split('-')
-        else:
-            rooms = [1, 2, 3, 4, 5, 6]
-
-        try:
-            properties = Property.objects.filter(
-                region__regex=region,
-                subregion__regex=subregion,
-                price__gte=priceA,
-                price__lte=priceB,
-                area__gte=sizeA,
-                area__lte=sizeB,
-                rooms__in=rooms
-            )
-
-            filtered_properties = []
-            for prop in properties:
-                # get owner of property
-                owner = User.objects.get(id=prop.owner_id)
-
-                image = Image.objects.filter(property_id=prop.id, title=True)
-
-                f = open(image.image_url, 'rb')
-                img_bytes = f.read()
-
-                filtered_properties.append({
-                    "id": prop.id,
-                    "rooms": prop.rooms,
-                    "area": prop.area,
-                    "price": prop.price,
-                    "last_updated": prop.last_updated,
-                    "address": prop.address,
-                    "owner": owner.name + " " + owner.surname,
-                    "image": img_bytes
-                })
-
-            return JsonResponse({'properties': filtered_properties}, status=201)
-        except:
-            return JsonResponse({'message': 'Bad Request'}, status=400)
-    return JsonResponse({'message': 'Wrong method'}, status=400)
 
 
 def liked_info_create(request):

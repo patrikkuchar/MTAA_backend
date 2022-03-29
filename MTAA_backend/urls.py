@@ -56,6 +56,15 @@ urlpatterns = [
     # [PUT] (Edit property from DATABASE)
     path('property/<int:property_id>/edit/', views.property_edit, name='property_edit'),
 
+    # REGIONS
+
+    # [GET] (Region)
+    path('regions/', views.regions, name='regions'),
+
+    # [GET] (Subregion)
+    path('subregions/<int:region_id>/', views.subregions, name='subregions'),
+
+
 
 
 

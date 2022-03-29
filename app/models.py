@@ -10,13 +10,24 @@ class User(models.Model):
   class Meta:
     db_table = "users"
 
+class Region(models.Model):
+  name = models.CharField(max_length=255)
+
+  class Meta:
+    db_table = "regions"
+
+class Subregion(models.Model):
+  name = models.CharField(max_length=255)
+  region = models.ForeignKey(Region, related_name="regions", blank=True, null=True, on_delete=models.SET_NULL)
+
+  class Meta:
+    db_table = "subregions"
 
 class Property(models.Model):
   rooms = models.BigIntegerField()
   area = models.BigIntegerField()
   price = models.BigIntegerField()
-  region = models.CharField(max_length=255)
-  subregion = models.CharField(max_length=255)
+  subregion = models.ForeignKey(Subregion, related_name="subregion", blank=True, null=True, on_delete=models.SET_NULL)
   last_updated = models.DateTimeField()
   owner = models.ForeignKey(User, related_name="userss", blank=True, null=True, on_delete=models.SET_NULL)
   address = models.CharField(max_length=255)
