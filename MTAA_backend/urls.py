@@ -36,7 +36,7 @@ urlpatterns = [
 
 
     # [POST] ( ADD IMAGES )
-    path('images/', views.edit_images, name='edit_images'),
+    path('images/<int:property_id>/', views.edit_images, name='edit_images'),
 
 
 
@@ -86,6 +86,9 @@ urlpatterns = [
     # [GET] Show all user's liked properties
     # [POST] Add property to user's liked list
     path('liked/', views.liked_info_create, name='liked_info_create'),
+
+    # [GET] Most liked properties
+    path('liked/most/', views.most_liked, name='most_liked'),
     
     # [DELETE] Remove property from user's liked list
     path('liked/<int:liked_id>/delete/', views.liked_remove, name='liked_remove'),

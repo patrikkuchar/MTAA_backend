@@ -18,8 +18,10 @@ import jwt
 import datetime
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
+import base64
 
 from django.forms.models import model_to_dict
+from django.db.models import Count
 
 from app.models import Booking, Liked, User, Property, Image, Region, Subregion
 
@@ -207,7 +209,7 @@ def filter(request, parameters):
                 # get owner of property
                 owner = User.objects.get(id=prop.owner_id)
 
-                image = Image.objects.filter(property_id=prop.id, title=True)
+                image = Image.objects.get(property_id=prop.id, title=True)
 
                 f = open(image.image_url, 'rb')
                 img_bytes = f.read()
@@ -220,7 +222,7 @@ def filter(request, parameters):
                     "last_updated": prop.last_updated,
                     "address": prop.address,
                     "owner": owner.name + " " + owner.surname,
-                    "image": img_bytes
+                    "image": base64.b64encode(img_bytes).decode('utf-8')
                 })
 
             return JsonResponse({'properties': filtered_properties}, status=200)
@@ -240,7 +242,7 @@ def property_info(request, property_id):
             return JsonResponse({'message': 'Unauthorized access'}, status=401)
 
         prop = Property.objects.select_related('owner', 'subregion').get(id=property_id)
-        region = Region.objects.get(id=prop.subregion.region)
+        region = Region.objects.get(id=prop.subregion.region_id)
         prop_dict = {
             'id': prop.id,
             'rooms': prop.rooms,
@@ -261,7 +263,8 @@ def property_info(request, property_id):
             for image in images:
                 f = open(image.image_url, 'rb')
                 img_bytes = f.read()
-                images_list.append(img_bytes)
+                #images_list.append(img_bytes)
+                images_list.append(base64.b64encode(img_bytes).decode('utf-8'))
             prop_dict['images'] = images_list
         except:
             prop_dict['images'] = []
@@ -272,9 +275,9 @@ def property_info(request, property_id):
 # Edit images [POST]
 def edit_images(request, property_id):
     if request.method == 'POST':
-        #user_id = checkToken(request)
-        #if user_id is None:
-        #    return JsonResponse({'message': 'Unauthorized access'}, status=401)
+        user_id = checkToken(request)
+        if user_id is None:
+            return JsonResponse({'message': 'Unauthorized access'}, status=401)
 
         if add_images(request, property_id, request.POST["image_title"]):
             return JsonResponse({'message': 'Images added'}, status=201)
@@ -283,6 +286,10 @@ def edit_images(request, property_id):
 
 
 def add_images(request, property_id, title_img):
+    try:
+        title_img = int(title_img)
+    except:
+        pass
 
     try:
         images = Image.objects.filter(property=property_id)
@@ -305,11 +312,15 @@ def add_images(request, property_id, title_img):
     if len(images_arr) < 3 or title_img >= len(images_arr):
         return False
 
+    try:
+        prop = Property.objects.get(id=property_id)
+    except:
+        return False
+
     for i, image_bytes in enumerate(images_arr):
         image_url = "app/images/" + str(property_id) + "_" + str(i)
         new_image = Image()
 
-        prop = Property.objects.get(id=property_id)
 
         new_image.property = prop
         new_image.image_url = image_url
@@ -563,8 +574,6 @@ def booking_delete(request, booking_id):
 # LIKED FUNCTIONS
 # -------------------------------
 
-
-
 def liked_info_create(request):
     if request.method == 'GET' or request.method == 'POST':
         user_id = checkToken(request)
@@ -598,6 +607,12 @@ def liked_info_create(request):
         str = request.body.decode('UTF-8')
         dictionary = json.loads(str)
 
+        try:
+            liked = Liked.objects.get(user_id=user_id, property_id=dictionary['property_id'])
+            return JsonResponse({'message': 'Already liked'}, status=400)
+        except:
+            pass
+
         new_liked = Liked()
 
         new_liked.property_id = dictionary['property_id']
@@ -605,7 +620,44 @@ def liked_info_create(request):
 
         new_liked.save()
 
-        return JsonResponse({'message': 'Property successfuly added to favourites'}, status=201)
+        return JsonResponse({'message': 'Property successfully added to favourites'}, status=201)
+
+def most_liked(request):
+    if request.method == 'GET':
+        user_id = checkToken(request)
+        if user_id is None:
+            return JsonResponse({'message': 'Unauthorized access'}, status=401)
+
+        All_liked = []
+        try:
+            all = Liked.objects.all().values('property').annotate(count=Count('property')).order_by('-count')[:5]
+        except:
+            return JsonResponse({'message': 'Not Found'}, status=404)
+
+        for one in all:
+            model_liked_one = model_to_dict(Property.objects.get(id=one.property))
+
+            user = User.objects.get(id=model_liked_one['owner_id'])
+
+            image = Image.objects.get(property_id=model_liked_one.id, title=True)
+
+            f = open(image.image_url, 'rb')
+            img_bytes = f.read()
+
+            json_property = {
+                "id": model_liked_one['id'],
+                "rooms": model_liked_one['rooms'],
+                "area": model_liked_one['area'],
+                "price": model_liked_one['price'],
+                "last_updated": model_liked_one['last_updated'],
+                "owner_id": user.name + " " + user.surname,
+                "address": model_liked_one['address'],
+                "image": base64.b64encode(img_bytes).decode('utf-8')
+            }
+
+            All_liked.append(json_property)
+        return JsonResponse({'most_liked': All_liked}, status=200)
+    return JsonResponse({'message': 'Wrong method'}, status=400)
 
 
 # Remove property from user's liked list [DELETE]
