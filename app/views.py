@@ -368,7 +368,6 @@ def property_add(request):
         new_property.rooms = dictionary['rooms']
         new_property.area = dictionary['area']
         new_property.price = dictionary['price']
-        new_property.region = dictionary['region']
         new_property.subregion = subregion
         new_property.last_updated = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         new_property.owner_id = user_id
