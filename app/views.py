@@ -465,6 +465,7 @@ def regions(request):
             for region in regions:
                 
                 all_regions.append({
+                    "id": region.id,
                     "name": region.name,
                 })
                     
@@ -485,6 +486,7 @@ def subregions(request, region_id):
             subregions = Subregion.objects.filter(region=region_id)
             for subregion in subregions:
                 all_subregions.append({
+                    "id" : subregion.id,
                     "name": subregion.name,
                 })
 
