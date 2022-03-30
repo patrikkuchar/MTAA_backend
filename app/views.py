@@ -382,6 +382,39 @@ def property_add(request):
         return JsonResponse({'message': 'Property added'}, status=201)
     return JsonResponse({'message': 'Wrong method'}, status=400)
 
+# Get user properties [GET]
+def user_properties(request):
+    if request.method == 'GET':
+        user_id = checkToken(request)
+        if user_id is None:
+            return JsonResponse({'message': 'Unauthorized access'}, status=401)
+
+        try:
+            properties = Property.objects.filter(owner_id=user_id)
+        except:
+            return JsonResponse({'message': 'No properties'}, status=404)
+
+        properties_arr = []
+        for property in properties:
+
+            image = Image.objects.get(property_id=property.id, title=True)
+
+            f = open(image.image_url, 'rb')
+            img_bytes = f.read()
+
+            properties_arr.append({
+                "id": property.id,
+                "rooms": property.rooms,
+                "area": property.area,
+                "price": property.price,
+                "last_updated": property.last_updated,
+                "address": property.address,
+                "image": base64.b64encode(img_bytes).decode('utf-8')
+            })
+
+        return JsonResponse({"properties": properties_arr}, status=200)
+    return JsonResponse({'message': 'Wrong method'}, status=400)
+
 
 # Deleting property from database [DELETE]
 def property_delete(request, property_id):

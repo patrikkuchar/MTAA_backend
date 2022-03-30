@@ -47,6 +47,9 @@ urlpatterns = [
     # [GET] (Show info about property page)
     path('property/<int:property_id>/', views.property_info, name='property_info'),
 
+    # [GET] (Show user properties)
+    path('property/user/', views.user_properties, name='user_properties'),
+
     # [POST] (ADD new property to DATABASE)
     path('property/', views.property_add, name='property_add'),
 
