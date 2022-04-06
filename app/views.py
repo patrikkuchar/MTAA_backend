@@ -241,7 +241,11 @@ def property_info(request, property_id):
         if user_id is None:
             return JsonResponse({'message': 'Unauthorized access'}, status=401)
 
-        prop = Property.objects.select_related('owner', 'subregion').get(id=property_id)
+        try:
+         prop = Property.objects.select_related('owner', 'subregion').get(id=property_id)
+        except:
+            return JsonResponse({'message': 'Property Not Found'}, status=404)
+
         region = Region.objects.get(id=prop.subregion.region_id)
         prop_dict = {
             'id': prop.id,
