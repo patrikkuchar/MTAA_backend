@@ -1,18 +1,5 @@
-import code
-from pyexpat import model
-from types import CodeType
-from itsdangerous import Serializer
-import psycopg2 as psycopg2
 import os
-import json
 from django.http import JsonResponse
-from django.http import HttpResponse
-from rest_framework import status
-from rest_framework.response import Response
-from django.contrib.auth import authenticate, login
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-from django.db import models
 import json
 import jwt
 import datetime
