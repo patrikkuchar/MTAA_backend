@@ -342,12 +342,12 @@ def property_add(request):
         dictionary = request.POST
 
         # validate area
-        ##if dictionary['area'] < 0:
-           # return JsonResponse({'message': 'Area cannot be negative'}, status=400)
+        if dictionary['area'] < 0:
+            return JsonResponse({'message': 'Area cannot be negative'}, status=400)
 
         # validate price
-      #  if dictionary['price'] < 0:
-      #      return JsonResponse({'message': 'Price cannot be negative'}, status=400)
+        if dictionary['price'] < 0:
+            return JsonResponse({'message': 'Price cannot be negative'}, status=400)
 
         try:
             subregion = Subregion.objects.get(id=dictionary['subregion'])
@@ -365,10 +365,10 @@ def property_add(request):
         new_property.address = dictionary['address']
         new_property.info = dictionary['info']
 
-        new_property.save()
         if not add_images(request, new_property.id, dictionary['title_image']):
             return JsonResponse({'message': 'Error while adding images'}, status=400)
 
+        new_property.save()
 
         return JsonResponse({'message': 'Property added'}, status=201)
     return JsonResponse({'message': 'Wrong method'}, status=400)
@@ -416,7 +416,7 @@ def property_delete(request, property_id):
 
         try:
             p = Property.objects.get(id=property_id)
-            if p.owner_id != user_id:
+            if p['owner_id'] != user_id:
                 return JsonResponse({'message': 'You do not own this property'}, status=403)
 
             images = Image.objects.filter(property=property_id)
@@ -459,16 +459,14 @@ def property_edit(request, property_id):
         # property in database
         try:
             p = Property.objects.get(id=property_id)
-            if p.owner_id != user_id:
+            if p['owner_id'] != user_id:
                 return JsonResponse({'message': 'You do not own this property'}, status=403)
-
-            subregion = Subregion.objects.get(id=dictionary['subregion'])
 
             p.rooms = dictionary['rooms']
             p.area = dictionary['area']
             p.price = dictionary['price']
-            #p.region = dictionary['region']
-            p.subregion = subregion
+            p.region = dictionary['region']
+            p.subregion = dictionary['subregion']
             p.last_updated = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             p.address = dictionary['info']
             p.save()
