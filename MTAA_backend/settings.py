@@ -24,7 +24,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["127.0.0.1", "mtaa-pkcp.azurewebsites.net"]
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -82,6 +82,9 @@ DATABASES = {
         'PASSWORD': os.getenv('PASS'),
         'HOST': os.getenv('HOST'),
         'PORT': os.getenv('PORT'),
+        'DATABASE' : os.getenv('DATABASE'),
+        'MAINTANCE_DB' : os.getenv('DATABASE'),
+
     }
 }
 
