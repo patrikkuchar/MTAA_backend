@@ -150,7 +150,7 @@ def filter(request, parameters):
 
         # get property by region
         try:
-            if len(parametersList) == 4:
+            if len(parameters) == 4:
                 properties = Property.objects.all()
             elif int(parametersList[0]) >= 1 and int(parametersList[0]) <= 8 and parametersList[1] == "" and parametersList[2] == "" and parametersList[3] == "" and parametersList[4] == "":
                 subregion = Subregion.objects.filter(region=int(parametersList[0]))
