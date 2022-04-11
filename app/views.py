@@ -493,8 +493,10 @@ def regions(request):
                     "name": region.name,
                 })
                     
-        
-            return JsonResponse(all_regions, safe=False)
+            regions = {
+                "regions": all_regions
+            }
+            return JsonResponse(regions, safe=False)
             
            
 
