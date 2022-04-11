@@ -144,7 +144,7 @@ def filter(request, parameters):
             return JsonResponse({'message': 'Wrong parameters'}, status=400)
 
         if len(parametersList) != 5:
-            JsonResponse({'message': 'Bad request'}, status=400)
+            JsonResponse({'message': 'Bad request1'}, status=400)
 
         properties = None
 
@@ -157,7 +157,7 @@ def filter(request, parameters):
             else:
                 subregion = Subregion.objects.filter(id=int(parametersList[1]))
         except:
-            return JsonResponse({'message': 'Bad request'}, status=400)
+            return JsonResponse({'message': 'Bad request2'}, status=400)
 
 
         if not properties:
@@ -188,7 +188,7 @@ def filter(request, parameters):
                     rooms__in=rooms
                 )
             except:
-                return JsonResponse({'message': 'Bad request'}, status=400)
+                return JsonResponse({'message': 'Bad request3'}, status=400)
 
         try:
             filtered_properties = []
@@ -214,7 +214,7 @@ def filter(request, parameters):
 
             return JsonResponse({'properties': filtered_properties}, status=200)
         except:
-            return JsonResponse({'message': 'Bad Request'}, status=400)
+            return JsonResponse({'message': 'Bad Request4'}, status=400)
     return JsonResponse({'message': 'Wrong method'}, status=400)
 
 
