@@ -213,8 +213,8 @@ def filter(request, parameters):
                 })
 
             return JsonResponse({'properties': filtered_properties}, status=200)
-        except:
-            return JsonResponse({'message': 'Bad Request4'}, status=400)
+        except Exception as e:
+            return JsonResponse({'message': 'Bad Request4 ' + str(e)}, status=400)
     return JsonResponse({'message': 'Wrong method'}, status=400)
 
 
