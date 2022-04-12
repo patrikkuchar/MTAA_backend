@@ -645,7 +645,7 @@ def liked_info_create(request):
             }
             All_liked.append(json_property)
 
-        return JsonResponse({'liked': All_liked}, status=200)
+        return JsonResponse({'properties': All_liked}, status=200)
 
     # Add property to user's liked properties [POST]
     if request.method == 'POST':
@@ -706,14 +706,14 @@ def most_liked(request):
 
 
 # Remove property from user's liked list [DELETE]
-def liked_remove(request, liked_id):
+def liked_remove(request, property_id):
     if request.method == 'DELETE':
         user_id = checkToken(request)
         if user_id is None:
             return JsonResponse({'message': 'Unauthorized access'}, status=401)
 
         try:
-            liked = Liked.objects.get(id=liked_id)
+            liked = Liked.objects.get(property_id = property_id, user_id = user_id)
             if user_id != liked.user_id:
                 return JsonResponse({'message': 'Unauthorized method'}, status=403)
 
