@@ -94,7 +94,7 @@ urlpatterns = [
     path('liked/most/', views.most_liked, name='most_liked'),
     
     # [DELETE] Remove property from user's liked list
-    path('liked/<int:liked_id>/delete/', views.liked_remove, name='liked_remove'),
+    path('liked/<int:property_id>/delete/', views.liked_remove, name='liked_remove'),
 
 
 
