@@ -707,18 +707,18 @@ def most_liked(request):
 
 # Remove property from user's liked list [DELETE]
 def liked_remove(request, property_id):
-    if request.method == 'DELETE':
-        user_id = checkToken(request)
-        if user_id is None:
-            return JsonResponse({'message': 'Unauthorized access'}, status=401)
+    
+    user_id = checkToken(request)
+    if user_id is None:
+        return JsonResponse({'message': 'Unauthorized access'}, status=401)
 
-        try:
-            liked = Liked.objects.get(property_id = property_id, user_id = user_id)
-            if user_id != liked.user_id:
-                return JsonResponse({'message': 'Unauthorized method'}, status=403)
+    try:
+        liked = Liked.objects.get(property_id = property_id, user_id = user_id)
+        if user_id != liked.user_id:
+            return JsonResponse({'message': 'Unauthorized method'}, status=403)
 
-            liked.delete()
-            return JsonResponse({'message': 'Property removed from your favourites'}, status=204)
-        except:
-            return JsonResponse({'message': 'Not Found'}, status=404)
-    return JsonResponse({'message': 'Wrong method'}, status=400)
+        liked.delete()
+        return JsonResponse({'message': 'Property removed from your favourites'}, status=204)
+    except:
+        return JsonResponse({'message': 'Not Found'}, status=404)
+    
