@@ -611,25 +611,25 @@ def booking_call(request, booking_id):
 
 # Delete existing booking [DELETE]
 def booking_delete(request, booking_id):
-    if request.method == 'DELETE':
-        user_id = checkToken(request)
-        if user_id is None:
-            return JsonResponse({'message': 'Unauthorized access'}, status=401)
+   
+    user_id = checkToken(request)
+    if user_id is None:
+        return JsonResponse({'message': 'Unauthorized access'}, status=401)
 
-        ## Check if user is in booking or if booking exist
-        try:
-            booking = Booking.objects.get(id=booking_id)
-            property = Property.objects.get(id=booking.property_id)
+    ## Check if user is in booking or if booking exist
+    try:
+        booking = Booking.objects.get(id=booking_id)
+        property = Property.objects.get(id=booking.property_id)
 
-            if not (user_id == booking.buyer_id or user_id == property.owner_id):
-                return JsonResponse({'message': 'Unauthorized method'}, status=403)
+        if not (user_id == booking.buyer_id or user_id == property.owner_id):
+            return JsonResponse({'message': 'Unauthorized method'}, status=403)
 
-            booking.delete()
-            return JsonResponse({'message': 'Booking deleted'}, status=204)
-        except:
-            return JsonResponse({'message': 'Booking not Found'}, status=404)
+        booking.delete()
+        return JsonResponse({'message': 'Booking deleted'}, status=204)
+    except:
+        return JsonResponse({'message': 'Booking not Found'}, status=404)
 
-    return JsonResponse({'message': 'Wrong method'}, status=400)
+   
 
 
 # LIKED FUNCTIONS
