@@ -153,8 +153,7 @@ def filter(request, parameters):
             if len(parameters) == 4:
                 properties = Property.objects.all()
             elif parametersList[0] == "" and parametersList[1] == "" or parametersList[2] != "" or parametersList[3] != "" or parametersList[4] != "":
-                subregion = ""
-                region = ""
+                subregion = Subregion.objects.all()
             else:
                 if int(parametersList[0]) >= 1 and int(parametersList[0]) <= 8 and parametersList[1] == "" and parametersList[2] == "" and parametersList[3] == "" and parametersList[4] == "":
                     subregion = Subregion.objects.filter(region=int(parametersList[0]))
@@ -167,18 +166,24 @@ def filter(request, parameters):
         if not properties:
             if parametersList[2] != "":
                 priceA, priceB = parametersList[2].split('-')
+                priceA = int(priceA)
+                priceB = int(priceB)
             else:
                 priceA = 0
                 priceB = 999999999
 
             if parametersList[3] != "":
                 sizeA, sizeB = parametersList[3].split('-')
+                sizeA = int(sizeA)
+                sizeB = int(sizeB)
             else:
                 sizeA = 0
                 sizeB = 999999999
 
             if parametersList[4] != "":
                 rooms = int(parametersList[4].split('-'))
+                if 6 in rooms:
+                    rooms.append(7,8,9,10,11,12,13)
             else:
                 rooms = [1, 2, 3, 4, 5, 6]
 
