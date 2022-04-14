@@ -152,10 +152,14 @@ def filter(request, parameters):
         try:
             if len(parameters) == 4:
                 properties = Property.objects.all()
-            elif int(parametersList[0]) >= 1 and int(parametersList[0]) <= 8 and parametersList[1] == "" and parametersList[2] == "" and parametersList[3] == "" and parametersList[4] == "":
-                subregion = Subregion.objects.filter(region=int(parametersList[0]))
+            elif parametersList[0] == "" and parametersList[1] == "" or parametersList[2] != "" or parametersList[3] != "" or parametersList[4] != "":
+                subregion = ""
+                region = ""
             else:
-                subregion = Subregion.objects.filter(id=int(parametersList[1]))
+                if int(parametersList[0]) >= 1 and int(parametersList[0]) <= 8 and parametersList[1] == "" and parametersList[2] == "" and parametersList[3] == "" and parametersList[4] == "":
+                    subregion = Subregion.objects.filter(region=int(parametersList[0]))
+                else:
+                    subregion = Subregion.objects.filter(id=int(parametersList[1]))
         except:
             return JsonResponse({'message': 'Bad request2'}, status=400)
 
