@@ -649,6 +649,11 @@ def liked_info_create(request):
         all = Liked.objects.select_related('property', 'user').filter(user_id=user_id)
 
         for one in all:
+            image = Image.objects.get(property_id=one.property.id, title=True)
+
+            f = open(image.image_url, 'rb')
+            img_bytes = f.read()
+
             model_liked_one = model_to_dict(one.property)
             json_property = {
                 "id": model_liked_one['id'],
@@ -657,7 +662,8 @@ def liked_info_create(request):
                 "price": model_liked_one['price'],
                 "last_updated": model_liked_one['last_updated'],
                 "owner_id": one.user.name + " " + one.user.surname,
-                "address": model_liked_one['address']
+                "address": model_liked_one['address'],
+                "image": base64.b64encode(img_bytes).decode('utf-8')
             }
             All_liked.append(json_property)
 
