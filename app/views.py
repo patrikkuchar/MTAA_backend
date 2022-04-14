@@ -553,20 +553,26 @@ def booking_info_create(request):
         for one_booking in a:
             model = model_to_dict(one_booking.property)
 
+            image = Image.objects.get(property_id=one_booking.property.id, title=True)
+
+            f = open(image.image_url, 'rb')
+            img_bytes = f.read()
+
             json_property = {
                 "id": model['id'],
                 "rooms": model['rooms'],
                 "area": model['area'],
                 "price": model['price'],
                 "address": model['address'],
-                "date": one_booking.time
+                "date": one_booking.time,
+                "image": base64.b64encode(img_bytes).decode('utf-8')
             }
 
             if one_booking.buyer_id == user_id:  # ktore kupujem
-                owner = User.objects.get(id=model['owner_id'])
+                owner = User.objects.get(id=model['owner'])
                 json_property["seller"] = owner.name + " " + owner.surname
                 buy_bookings.append(json_property)
-            if model['owner_id'] == user_id:  # ktore predavam
+            if model['owner'] == user_id:  # ktore predavam
                 json_property["buyer"] = one_booking.buyer.name + " " + one_booking.buyer.surname
                 sell_bookings.append(json_property)
 
