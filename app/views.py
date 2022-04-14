@@ -181,7 +181,8 @@ def filter(request, parameters):
                 sizeB = 999999999
 
             if parametersList[4] != "":
-                rooms = int(parametersList[4].split('-'))
+                rooms = parametersList[4].split('-')
+                rooms = [int(i) for i in rooms]
                 if 6 in rooms:
                     rooms.append(7,8,9,10,11,12,13)
             else:
