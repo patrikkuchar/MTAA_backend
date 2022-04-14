@@ -95,7 +95,7 @@ def change_password(request):
     if request.method == 'PATCH':
         user_id = checkToken(request)
         if user_id is None:
-            return JsonResponse({'message': 'Unauthorized access'}, status=401)
+            return JsonResponse({'msg': 'Unauthorized access'}, status=401)
 
         str = request.body.decode('UTF-8')
         dictionary = json.loads(str)
@@ -104,29 +104,29 @@ def change_password(request):
         try:
             user = User.objects.get(id=user_id)
             if user.password != dictionary['old_password']:
-                return JsonResponse({'message': 'Incorrect old password'}, status=400)
+                return JsonResponse({'msg': 'Incorrect old password'}, status=400)
         except:
-            return JsonResponse({'message': 'Incorrect old password'}, status=400)
+            return JsonResponse({'msg': 'Incorrect old password'}, status=400)
 
         # validacia hesla
         if len(dictionary['new_password']) < 8:
-            return JsonResponse({'message': 'Password must be at least 8 characters long'}, status=400)
+            return JsonResponse({'msg': 'Password must be at least 8 characters long'}, status=400)
 
         if dictionary['old_password'] == dictionary['new_password']:
-            return JsonResponse({'message': 'New password must be different from old password'}, status=400)
+            return JsonResponse({'msg': 'New password must be different from old password'}, status=400)
 
         if dictionary['new_password'] != dictionary['new_password_confirm']:
-            return JsonResponse({'message': 'Passwords do not match'}, status=400)
+            return JsonResponse({'msg': 'Passwords do not match'}, status=400)
 
         # zmena hesla
         try:
             user = User.objects.get(id=user_id)
             user.password = dictionary['new_password']
             user.save()
-            return JsonResponse({'message': 'Password changed'}, status=204)
+            return JsonResponse({'msg': 'Password changed'}, status=204)
         except:
-            return JsonResponse({'message': 'Password change failed'}, status=400)
-    return JsonResponse({'message': 'Wrong method'}, status=400)
+            return JsonResponse({'msg': 'Password change failed'}, status=400)
+    return JsonResponse({'msg': 'Wrong method'}, status=400)
 
 
 
