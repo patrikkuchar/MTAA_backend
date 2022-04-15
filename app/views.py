@@ -560,7 +560,7 @@ def booking_info_create(request):
             img_bytes = f.read()
 
             json_property = {
-                "id": model['id'],
+                "id": one_booking.id,
                 "rooms": model['rooms'],
                 "area": model['area'],
                 "price": model['price'],
