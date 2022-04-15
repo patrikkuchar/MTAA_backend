@@ -347,9 +347,9 @@ def property_add(request):
         if user_id is None:
             return JsonResponse({'message': 'Unauthorized access'}, status=401)
 
-        #str = request.body.decode('UTF-8')
-        #dictionary = json.loads(str)
-        dictionary = request.POST
+        str = request.body.decode('UTF-8')
+        dictionary = json.loads(str)
+        #dictionary = request.POST
 
         # validate area
         if dictionary['area'] < 0:
