@@ -78,12 +78,10 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'mtaa',
-        'USER': os.getenv('USER'),
-        'PASSWORD': os.getenv('PASS'),
-        'HOST': os.getenv('HOST'),
-        'PORT': os.getenv('PORT'),
-        'DATABASE' : os.getenv('DATABASE'),
-        'MAINTANCE_DB' : os.getenv('DATABASE'),
+        'USER': "addmin",
+        'PASSWORD': "h3sl0.987",
+        'HOST': "mtaa-database.postgres.database.azure.com",
+        'PORT': "5432",
 
     }
 }
@@ -143,3 +141,4 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DATA_UPLOAD_MAX_MEMORY_SIZE = None

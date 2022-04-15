@@ -286,7 +286,7 @@ def edit_images(request, property_id):
     return JsonResponse({'message': 'Wrong method'}, status=400)
 
 
-def add_images(request, property_id, title_img):
+def add_images(images_add, property_id, title_img):
     try:
         title_img = int(title_img)
     except:
@@ -305,17 +305,19 @@ def add_images(request, property_id, title_img):
     try:
         count = 0
         while True:
-            images_arr.append(request.FILES['img' + str(count)].read())
+            images_arr.append(bytes(images_add[count], 'utf-8'))
             count += 1
     except:
         pass
 
-    if len(images_arr) < 3 or title_img >= len(images_arr):
+    if len(images_arr) < 2 or title_img >= len(images_arr):
+        print("1")
         return False
 
     try:
         prop = Property.objects.get(id=property_id)
     except:
+        print("2")
         return False
 
     for i, image_bytes in enumerate(images_arr):
@@ -334,6 +336,7 @@ def add_images(request, property_id, title_img):
             with open(image_url, 'wb') as f:
                 f.write(image_bytes)
         except:
+            print("3")
             return False
 
         new_image.save()
@@ -364,8 +367,9 @@ def property_add(request):
         except:
             return JsonResponse({'message': 'Subregion does not exist'}, status=404)
 
-        new_property = Property()
+        images = dictionary["images"] 
 
+        new_property = Property()
         new_property.rooms = dictionary['rooms']
         new_property.area = dictionary['area']
         new_property.price = dictionary['price']
@@ -374,11 +378,12 @@ def property_add(request):
         new_property.owner_id = user_id
         new_property.address = dictionary['address']
         new_property.info = dictionary['info']
+        new_property.save()
 
-        if not add_images(request, new_property.id, dictionary['title_image']):
+        if not add_images(images, new_property.id, dictionary['title_image']):
             return JsonResponse({'message': 'Error while adding images'}, status=400)
 
-        new_property.save()
+        
 
         return JsonResponse({'message': 'Property added'}, status=201)
     return JsonResponse({'message': 'Wrong method'}, status=400)
