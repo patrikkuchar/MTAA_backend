@@ -305,7 +305,7 @@ def add_images(images_add, property_id, title_img):
     try:
         count = 0
         while True:
-            images_arr.append(bytes(images_add[count], 'utf-8'))
+            images_arr.append(images_add[count])
             count += 1
     except:
         pass
