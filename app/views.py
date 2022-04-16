@@ -652,7 +652,10 @@ def liked_info_create(request):
     # Return all user's liked properties [GET]
     if request.method == 'GET':
         All_liked = []
-        all = Liked.objects.select_related('property', 'user').filter(user_id=user_id)
+        try:
+            all = Liked.objects.select_related('property', 'user').filter(user_id=user_id)
+        except:
+            return JsonResponse({'message': 'Not Found'}, status=404)
 
         for one in all:
             image = Image.objects.get(property_id=one.property.id, title=True)
