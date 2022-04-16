@@ -77,11 +77,12 @@ WSGI_APPLICATION = 'MTAA_backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'mtaa',
-        'USER': "addmin",
-        'PASSWORD': "h3sl0.987",
-        'HOST': "mtaa-database.postgres.database.azure.com",
-        'PORT': "5432",
+        'USER': os.getenv('USER'),
+        'PASSWORD': os.getenv('PASS'),
+        'HOST': os.getenv('HOST'),
+        'PORT': os.getenv('PORT'),
+        'DATABASE' : os.getenv('DATABASE'),
+        'MAINTANCE_DB' : os.getenv('DATABASE'),
 
     }
 }

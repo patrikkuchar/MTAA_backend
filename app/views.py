@@ -208,7 +208,7 @@ def filter(request, parameters):
 
                 image = Image.objects.get(property_id=prop.id, title=True)
 
-                f = open(image.image_url, 'rb')
+                f = open(image.image_url, 'r')
                 img_bytes = f.read()
 
                 filtered_properties.append({
@@ -219,7 +219,7 @@ def filter(request, parameters):
                     "last_updated": prop.last_updated,
                     "address": prop.address,
                     "owner": owner.name + " " + owner.surname,
-                    "image": base64.b64encode(img_bytes).decode('utf-8')
+                    "image": img_bytes
                 })
 
             return JsonResponse({'properties': filtered_properties}, status=200)
@@ -262,10 +262,10 @@ def property_info(request, property_id):
             images = Image.objects.filter(property=prop)
             images_list = []
             for image in images:
-                f = open(image.image_url, 'rb')
+                f = open(image.image_url, 'r')
                 img_bytes = f.read()
                 #images_list.append(img_bytes)
-                images_list.append(base64.b64encode(img_bytes).decode('utf-8'))
+                images_list.append(img_bytes)
             prop_dict['images'] = images_list
         except:
             prop_dict['images'] = []
@@ -333,7 +333,7 @@ def add_images(images_add, property_id, title_img):
             new_image.title = False
 
         try:
-            with open(image_url, 'wb') as f:
+            with open(image_url, 'w') as f:
                 f.write(image_bytes)
         except:
             print("3")
@@ -363,7 +363,8 @@ def property_add(request):
             return JsonResponse({'message': 'Price cannot be negative'}, status=400)
 
         try:
-            subregion = Subregion.objects.get(id=dictionary['subregion'])
+            id1=dictionary['subregion']
+            subregion = Subregion.objects.get(id=id1)
         except:
             return JsonResponse({'message': 'Subregion does not exist'}, status=404)
 
@@ -405,7 +406,7 @@ def user_properties(request):
 
             image = Image.objects.get(property_id=property.id, title=True)
 
-            f = open(image.image_url, 'rb')
+            f = open(image.image_url, 'r')
             img_bytes = f.read()
 
             properties_arr.append({
@@ -415,7 +416,7 @@ def user_properties(request):
                 "price": property.price,
                 "last_updated": property.last_updated,
                 "address": property.address,
-                "image": base64.b64encode(img_bytes).decode('utf-8')
+                "image": img_bytes
             })
 
         return JsonResponse({"properties": properties_arr}, status=200)
@@ -561,7 +562,7 @@ def booking_info_create(request):
 
             image = Image.objects.get(property_id=one_booking.property.id, title=True)
 
-            f = open(image.image_url, 'rb')
+            f = open(image.image_url, 'r')
             img_bytes = f.read()
 
             json_property = {
@@ -571,7 +572,7 @@ def booking_info_create(request):
                 "price": model['price'],
                 "address": model['address'],
                 "date": one_booking.time,
-                "image": base64.b64encode(img_bytes).decode('utf-8')
+                "image": img_bytes
             }
 
             if one_booking.buyer_id == user_id:  # ktore kupujem
@@ -656,7 +657,7 @@ def liked_info_create(request):
         for one in all:
             image = Image.objects.get(property_id=one.property.id, title=True)
 
-            f = open(image.image_url, 'rb')
+            f = open(image.image_url, 'r')
             img_bytes = f.read()
 
             model_liked_one = model_to_dict(one.property)
@@ -668,7 +669,7 @@ def liked_info_create(request):
                 "last_updated": model_liked_one['last_updated'],
                 "owner_id": one.user.name + " " + one.user.surname,
                 "address": model_liked_one['address'],
-                "image": base64.b64encode(img_bytes).decode('utf-8')
+                "image": img_bytes
             }
             All_liked.append(json_property)
 
@@ -713,7 +714,7 @@ def most_liked(request):
 
             image = Image.objects.get(property_id=model_liked_one.id, title=True)
 
-            f = open(image.image_url, 'rb')
+            f = open(image.image_url, 'r')
             img_bytes = f.read()
 
             json_property = {
@@ -724,7 +725,7 @@ def most_liked(request):
                 "last_updated": model_liked_one['last_updated'],
                 "owner_id": user.name + " " + user.surname,
                 "address": model_liked_one['address'],
-                "image": base64.b64encode(img_bytes).decode('utf-8')
+                "image": img_bytes
             }
 
             All_liked.append(json_property)
