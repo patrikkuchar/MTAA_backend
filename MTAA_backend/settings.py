@@ -77,6 +77,7 @@ WSGI_APPLICATION = 'MTAA_backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'mtaa',
         'USER': os.getenv('USER'),
         'PASSWORD': os.getenv('PASS'),
         'HOST': os.getenv('HOST'),
