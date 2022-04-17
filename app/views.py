@@ -475,14 +475,16 @@ def property_edit(request, property_id):
     # property in database
     try:
         p = Property.objects.get(id=property_id)
-        if p['owner_id'] != user_id:
+        owner = p.owner_id
+        if owner != user_id:
             return JsonResponse({'message': 'You do not own this property'}, status=403)
-
+            
+        subregion = Subregion.objects.get(id=dictionary['subregion_id'])
         p.rooms = dictionary['rooms']
         p.area = dictionary['area']
         p.price = dictionary['price']
-        p.region = dictionary['region']
-        p.subregion = dictionary['subregion']
+        p.region = subregion.region
+        p.subregion = subregion
         p.last_updated = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         p.address = dictionary['info']
         p.save()
