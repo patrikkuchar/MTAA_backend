@@ -459,41 +459,43 @@ def property_delete(request, property_id):
 
 
 def property_edit(request, property_id):
-    if request.method == 'PUT':
-        user_id = checkToken(request)
-        if user_id is None:
-            return JsonResponse({'message': 'Unauthorized access'}, status=401)
+    
+    user_id = checkToken(request)
+    if user_id is None:
+        return JsonResponse({'message': 'Unauthorized access'}, status=401)
 
-        str = request.body.decode('UTF-8')
-        dictionary = json.loads(str)
+    str = request.body.decode('UTF-8')
+    dictionary = json.loads(str)
 
-        # validate area
-        if dictionary['area'] < 0:
-            return JsonResponse({'message': 'Area cannot be negative'}, status=400)
+    # validate area
+    if dictionary['area'] < 0:
+        return JsonResponse({'message': 'Area cannot be negative'}, status=400)
 
-        # validate price
-        if dictionary['price'] < 0:
-            return JsonResponse({'message': 'Price cannot be negative'}, status=400)
+    # validate price
+    if dictionary['price'] < 0:
+        return JsonResponse({'message': 'Price cannot be negative'}, status=400)
 
-        # property in database
-        try:
-            p = Property.objects.get(id=property_id)
-            if p['owner_id'] != user_id:
-                return JsonResponse({'message': 'You do not own this property'}, status=403)
-
-            p.rooms = dictionary['rooms']
-            p.area = dictionary['area']
-            p.price = dictionary['price']
-            p.region = dictionary['region']
-            p.subregion = dictionary['subregion']
-            p.last_updated = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            p.address = dictionary['info']
-            p.save()
-            ## doplniť tie obrázky ktoré sa pridajú
-            return JsonResponse({'message': 'Property successfully edited'}, status=200)
-        except:
-            return JsonResponse({'message': 'Not Found'}, status=404)
-    return JsonResponse({'message': 'Wrong method'}, status=400)
+    # property in database
+    try:
+        p = Property.objects.get(id=property_id)
+        owner = p.owner_id
+        if owner != user_id:
+            return JsonResponse({'message': 'You do not own this property'}, status=403)
+            
+        subregion = Subregion.objects.get(id=dictionary['subregion_id'])
+        p.rooms = dictionary['rooms']
+        p.area = dictionary['area']
+        p.price = dictionary['price']
+        p.region = subregion.region
+        p.subregion = subregion
+        p.last_updated = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        p.address = dictionary['info']
+        p.save()
+        ## doplniť tie obrázky ktoré sa pridajú
+        return JsonResponse({'message': 'Property successfully edited'}, status=200)
+    except:
+        return JsonResponse({'message': 'Not Found'}, status=404)
+   
 
 
 # REGIONS FUNCTIONS
