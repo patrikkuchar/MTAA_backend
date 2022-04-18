@@ -280,7 +280,10 @@ def edit_images(request, property_id):
         if user_id is None:
             return JsonResponse({'message': 'Unauthorized access'}, status=401)
 
-        if add_images(request, property_id, request.POST["image_title"]):
+        str = request.body.decode('UTF-8')
+        dictionary = json.loads(str)
+
+        if add_images(dictionary["images"], property_id, dictionary["image_title"]):
             return JsonResponse({'message': 'Images added'}, status=201)
         return JsonResponse({'message': 'Images not added'}, status=400)
     return JsonResponse({'message': 'Wrong method'}, status=400)
