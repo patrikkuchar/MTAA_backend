@@ -409,8 +409,11 @@ def user_properties(request):
 
             image = Image.objects.get(property_id=property.id, title=True)
 
-            f = open(image.image_url, 'r')
-            img_bytes = f.read()
+            try:
+                f = open(image.image_url, 'r')
+                img_bytes = f.read()
+            except:
+                return JsonResponse({'message': 'Error while reading image'}, status=400)
 
             properties_arr.append({
                 "id": property.id,
@@ -428,34 +431,28 @@ def user_properties(request):
 
 # Deleting property from database [DELETE]
 def property_delete(request, property_id):
-    if request.method == 'DELETE':
-        user_id = checkToken(request)
-        if user_id is None:
-            return JsonResponse({'message': 'Unauthorized access'}, status=401)
+    user_id = checkToken(request)
+    if user_id is None:
+        return JsonResponse({'message': 'Unauthorized access'}, status=401)
+    try:
+        p = Property.objects.get(id=property_id)
+        if p['owner_id'] != user_id:
+            return JsonResponse({'message': 'You do not own this property'}, status=403)
+        images = Image.objects.filter(property=property_id)
+        for image in images:
+            default_storage.delete(image.image_url)
+            image.delete()
+        booking = Booking.objects.filter(property=property_id)
+        for b in booking:
+            b.delete()
+        liked = Liked.objects.filter(property=property_id)
+        for l in liked:
+            l.delete()
+        p.delete()
+        return JsonResponse({'message': 'Property successfully removed'}, status=204)
+    except:
+        return JsonResponse({'message': 'Not Found'}, status=404)
 
-        try:
-            p = Property.objects.get(id=property_id)
-            if p['owner_id'] != user_id:
-                return JsonResponse({'message': 'You do not own this property'}, status=403)
-
-            images = Image.objects.filter(property=property_id)
-            for image in images:
-                default_storage.delete(image.image_url)
-                image.delete()
-
-            booking = Booking.objects.filter(property=property_id)
-            for b in booking:
-                b.delete()
-
-            liked = Liked.objects.filter(property=property_id)
-            for l in liked:
-                l.delete()
-
-            p.delete()
-            return JsonResponse({'message': 'Property successfully removed'}, status=204)
-        except:
-            return JsonResponse({'message': 'Not Found'}, status=404)
-    return JsonResponse({'message': 'Wrong method'}, status=400)
 
 
 def property_edit(request, property_id):
