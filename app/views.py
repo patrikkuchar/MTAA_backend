@@ -436,7 +436,7 @@ def property_delete(request, property_id):
         return JsonResponse({'message': 'Unauthorized access'}, status=401)
     try:
         p = Property.objects.get(id=property_id)
-        if p['owner_id'] != user_id:
+        if p.owner_id != user_id:
             return JsonResponse({'message': 'You do not own this property'}, status=403)
         images = Image.objects.filter(property=property_id)
         for image in images:
